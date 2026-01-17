@@ -35,7 +35,7 @@ jobs:
         with:
           use-public-rspm: true
       - name: Install rio package
-          run: Rscript -e 'install.packages("rio")'
+        run: Rscript -e 'install.packages("rio")'
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
