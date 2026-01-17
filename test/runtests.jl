@@ -1,6 +1,5 @@
 using PIIScanner
 using Test
+using TestItemRunner
 
-@testset "PIIScanner.jl" begin
-    # Write your tests here.
-end
+@run_package_tests filter=ti->!(:skipci in ti.tags)
