@@ -127,3 +127,17 @@ end
     @test any(m -> m.filepath == file1, matches)
     @test !any(m -> m.filepath == file2, matches)
 end
+
+
+@testitem "load data with rio" begin
+    tmpdir = mktempdir()
+    csv_file = joinpath(tmpdir, "data.csv")
+    
+    open(csv_file, "w") do io
+        println(io, "name,value")
+        println(io, "Alice,100")
+        println(io, "Bob,200")
+        println(io, "Charlie,300")
+    end
+    
+end

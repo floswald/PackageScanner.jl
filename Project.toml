@@ -3,6 +3,9 @@ uuid = "cf352d04-0051-48bd-b141-6a91af5c6085"
 version = "1.0.0-DEV"
 authors = ["Florian Oswald <florian.oswald@gmail.com> and contributors"]
 
+[workspace]
+projects = ["docs"]
+
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 RCall = "6f49c342-dc21-5d91-9882-a32aef131414"

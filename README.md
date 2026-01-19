@@ -2,14 +2,29 @@
 
 [![Build Status](https://github.com/floswald/PIIScanner.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/floswald/PIIScanner.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-A Julia package for detecting Personally Identifiable Information (PII) in data files and code.
+A Julia package for detecting **Personally Identifiable Information (PII)** in data files and code.
 
 Based on the methodology from [J-PAL's PII-Scan](https://github.com/J-PAL/PII-Scan), this package scans variable names, labels, and code for common PII indicators to help researchers comply with privacy regulations like GDPR.
 
+## What does GDPR Mean for Researchers?
+
+*There may be other legal provisions for publishing your research data beyond GDPR*
+
+Here are three main things to keep in mind:
+
+1. Right to be Forgotten (Article 17): Researchers must be able to identify and delete an individual's data upon request. PII in datasets makes this possible - without proper tracking of identifiable information, you cannot comply with deletion requests. Conversely, inadvertently retaining PII when it should have been anonymized creates compliance risk.
+2. Data Minimization Principle (Article 5): You should only collect and retain personal data that is adequate, relevant, and limited to what's necessary for your research purpose. A PII scanner helps identify when you're holding more identifiable information than needed - for instance, keeping full names and addresses when only age ranges and region codes would suffice for analysis.
+3. Breach Notification Requirements (Article 33-34): If you suffer a data breach involving personal data, you must notify authorities within 72 hours and inform affected individuals. A PII scanner helps you quickly assess what was exposed in a breach - whether it's anonymized research data (lower risk) or datasets containing names, SSNs, or other direct identifiers (high risk requiring immediate notification).
+
+Background:
+
+* [Full Legal Text - EU GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
+
+
 ## Features
 
-- **Multi-format data support**: Uses R's `rio` package to read Stata, SPSS, SAS, Excel, CSV, and many other formats
-- **Smart detection**: Scans variable names, labels, and code for PII terms
+- **Multi-format data support**: Uses R's `rio` package to read Stata, SPSS, SAS, Excel, CSV, and [many other formats](https://gesistsa.github.io/rio/#supported-file-formats)
+- **Smart detection**: Scans variable names, labels, and code for PII terms, trying to minimize false positives
 - **Customizable**: Add your own PII search terms, adjust strictness
 - **Report generation**: Creates markdown reports for inclusion in research documentation
 
@@ -83,7 +98,7 @@ write_pii_report(data_results, code_results, "output/", splitat="/project/")
 
 ## Default PII Terms
 
-The package searches for these terms by default (based on J-PAL PII-Scan):
+The package searches for these terms by default (based on [J-PAL PII-Scan](https://github.com/J-PAL/PII-Scan)):
 
 address, bday, beneficiary, birth, birthday, city, dob, email, 
 first_name, fname, last_name, lname, name, phone, ssn, and more...

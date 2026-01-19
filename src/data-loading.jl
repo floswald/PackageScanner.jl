@@ -30,42 +30,47 @@ function load_data_metadata(filepath::String)
                 return(NULL)
             }
         )
-        
-        if (!is.null(data)) {
-            # Get variable names
-            var_names <- names(data)
-            
-            # Get variable labels if they exist
-            var_labels <- sapply(data, function(x) {
-                label <- attr(x, "label")
-                if (is.null(label)) NA else as.character(label)
-            })
-            
-            # Get sample values for each variable (up to 5 unique non-missing)
-            samples <- lapply(data, function(col) {
-                non_missing <- col[!is.na(col)]
-                unique_vals <- unique(non_missing)
-                n_samples <- min(5, length(unique_vals))
-                if (n_samples > 0) {
-                    as.character(head(unique_vals, n_samples))
-                } else {
-                    character(0)
-                }
-            })
-            
-            # Return as list
-            list(
-                var_names = var_names,
-                var_labels = var_labels,
-                samples = samples
-            )
-        } else {
-            NULL
+
+        r_metareader <- function(x){
+            if (!is.null(x)) {
+                # Get variable names
+                var_names <- names(x)
+                
+                # Get variable labels if they exist
+                var_labels <- sapply(x, function(x) {
+                    label <- attr(x, "label")
+                    if (is.null(label)) NA else as.character(label)
+                })
+                
+                # Get sample values for each variable (up to 5 unique non-missing)
+                samples <- lapply(x, function(col) {
+                    non_missing <- col[!is.na(col)]
+                    unique_vals <- unique(non_missing)
+                    n_samples <- min(5, length(unique_vals))
+                    if (n_samples > 0) {
+                        as.character(head(unique_vals, n_samples))
+                    } else {
+                        character(0)
+                    }
+                })
+                
+                # Return as list
+                list(
+                    var_names = var_names,
+                    var_labels = var_labels,
+                    samples = samples
+                )
+            } else {
+                NULL
+            }
         }
+
+        # execute function
+        out <- r_metareader(data)
         """
         
-        @rget data
-        return data
+        @rget out
+        return out
         
     catch e
         @warn "Error loading $filepath: $e"
