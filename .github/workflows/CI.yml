@@ -36,6 +36,8 @@ jobs:
           use-public-rspm: true
       - name: Install rio from GitHub  
         run: Rscript -e 'install.packages("remotes"); remotes::install_github("gesistsa/rio")'
+      - name: Install all rio format handlers
+        run: Rscript -e 'rio::install_formats()'
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
