@@ -10,37 +10,37 @@ Main functionality:
 ### Scanning Data Files
 ```julia
 # Scan a single data file
-matches = scan_data_file("data/survey.dta")
+matches = PIIScanner.scan_data_file("data/survey.dta")
 
 # Scan with strict matching (word boundaries only)
-matches = scan_data_file("data/survey.dta", strict=true)
+matches = PIIScanner.scan_data_file("data/survey.dta", strict=true)
 
 # Add custom PII terms
-matches = scan_data_file("data/survey.dta", custom_terms=["patient_id", "taxpayer"])
+matches = PIIScanner.scan_data_file("data/survey.dta", custom_terms=["patient_id", "taxpayer"])
 
 # Batch scan
-matches = scan_data_files(data_files)
+matches = PIIScanner.scan_data_files(data_files)
 ```
 
 ### Scanning Code Files
 ```julia
 # Scan code for PII references
-matches = scan_code_file("src/analysis.R")
+matches = PIIScanner.scan_code_file("src/analysis.R")
 
 # Batch scan
-matches = scan_code_files(code_files)
+matches = PIIScanner.scan_code_files(code_files)
 ```
 
 ### Generating Reports
 ```julia
 # Two-file report (summary + detailed appendix)
-write_pii_report(data_results, code_results, "output/")
+PIIScanner.write_pii_report(data_results, code_results, "output/")
 
 # Single simple report
-write_pii_report_simple(data_results, code_results, "output/")
+PIIScanner.write_pii_report_simple(data_results, code_results, "output/")
 
 # Trim file paths in report
-write_pii_report(data_results, code_results, "output/", splitat="/project/")
+PIIScanner.write_pii_report(data_results, code_results, "output/", splitat="/project/")
 ```
 
 ## Default PII Terms
@@ -50,7 +50,7 @@ The package searches for these terms by default (based on [J-PAL PII-Scan](https
 address, bday, beneficiary, birth, birthday, city, dob, email, 
 first_name, fname, last_name, lname, name, phone, ssn, and more...
 
-See `DEFAULT_PII_TERMS` for the complete list.
+See `PIIScanner.DEFAULT_PII_TERMS` for the complete list.
 
 
 
