@@ -39,7 +39,7 @@ jobs:
         run: echo "LD_LIBRARY_PATH=$(R RHOME)/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
         if: matrix.os == 'ubuntu-latest'
       - name: Install rio from GitHub  
-        run: Rscript -e 'install.packages("remotes"); remotes::install_github("gesistsa/rio")'
+        run: Rscript -e 'install.packages(c("remotes", "haven")); remotes::install_github("gesistsa/rio")'
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       - name: Install all rio format handlers

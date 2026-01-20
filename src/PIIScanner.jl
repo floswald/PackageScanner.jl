@@ -2,6 +2,9 @@ module PIIScanner
 
 using RCall
 using Dates
+using Infiltrator
+using CSV
+using DataFrames
 
 # Include submodules
 include("constants.jl")

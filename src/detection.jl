@@ -111,10 +111,10 @@ function scan_data_file(filepath::String;
     # All PII search in Julia
     search_terms = isempty(custom_terms) ? DEFAULT_PII_TERMS : [DEFAULT_PII_TERMS..., custom_terms...]
     
-    for i in 1:length(var_names)
-        var_name = var_names[i]
-        var_label = ismissing(var_labels[i]) ? nothing : var_labels[i]
-        var_samples = samples[i]
+    for k in var_names
+        var_name = k
+        var_label = isnothing(var_labels) ? nothing : var_labels[k]
+        var_samples = samples[k]
         
         matched_terms = String[]
         

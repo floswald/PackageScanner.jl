@@ -104,7 +104,7 @@ end
 @testitem "scan_data_files - batch processing" tags=[:skipci] begin
     
     tmpdir = mktempdir()
-    
+
     # File with PII
     file1 = joinpath(tmpdir, "survey.csv")
     open(file1, "w") do io
@@ -129,15 +129,45 @@ end
 end
 
 
-@testitem "load data with rio" begin
+@testitem "load metadata" begin
     tmpdir = mktempdir()
-    csv_file = joinpath(tmpdir, "data.csv")
-    
-    open(csv_file, "w") do io
-        println(io, "name,value")
-        println(io, "Alice,100")
-        println(io, "Bob,200")
-        println(io, "Charlie,300")
+
+    file2 = joinpath(tmpdir, "counts.csv")
+    open(file2, "w") do io
+        println(io, "category,count")
+        println(io, "A,10")
     end
+
+    @test isnothing(PIIScanner.extract_metadata(nothing))
     
+    call = PIIScanner.load_data_metadata(file2)
+    @test isa(call, Dict)
+
+    @test isa(call["var_names"],Vector{String})
+    @test isnothing(call["var_labels"])
+
+
+end
+
+@testitem "extract a stata file" begin
+    dta = joinpath(@__DIR__, "data", "auto.dta")
+    out = PIIScanner.load_data_metadata(dta)
+
+    labels = [
+        "Make and model",
+        "Price",
+        "Mileage (mpg)",
+        "Repair record 1978",
+        "Headroom (in.)",
+        "Trunk space (cu. ft.)",
+        "Weight (lbs.)",
+        "Length (in.)",
+        "Turn circle (ft.)",
+        "Displacement (cu. in.)",
+        "Gear ratio",
+        "Car origin"
+    ]
+
+    @test all(values(out["var_labels"]) .== labels)
+
 end

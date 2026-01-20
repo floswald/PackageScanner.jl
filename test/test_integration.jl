@@ -1,4 +1,4 @@
-@testitem "End-to-end workflow" tags=[:skipci] begin
+@testitem "End-to-end workflow" begin
     
     tmpdir = mktempdir()
     
@@ -41,7 +41,7 @@
     @test isfile(joinpath(output_dir, "report-pii-appendix.md"))
 end
 
-@testitem "Workflow with custom PII terms" tags=[:skipci] begin
+@testitem "Workflow with custom PII terms" begin
     
     tmpdir = mktempdir()
     
@@ -62,7 +62,7 @@ end
     @test any(m -> "diagnosis" in m.matched_terms, data_results)
 end
 
-@testitem "Workflow with strict matching" tags=[:skipci] begin
+@testitem "Workflow with strict matching" begin
     
     tmpdir = mktempdir()
     

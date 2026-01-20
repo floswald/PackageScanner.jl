@@ -316,3 +316,29 @@ function write_pii_report_simple(data_results::Vector{PIIMatch},
     
     println("✓ PII report written: $(joinpath(fp, "report-pii.md"))")
 end
+
+function full_example()
+    tmpdir = mktempdir()
+    
+    # Create test data file
+    data_file = joinpath(tmpdir, "survey.csv")
+    open(data_file, "w") do io
+        println(io, "respondent_id,first_name,age,city")
+        println(io, "1,John,30,NYC")
+        println(io, "2,Jane,25,LA")
+    end
+    
+    # Create test code file
+    code_file = joinpath(tmpdir, "analysis.R")
+    open(code_file, "w") do io
+        println(io, "data <- read.csv('survey.csv')")
+        println(io, "model <- lm(age ~ first_name)")
+    end
+    return data_file
+    # Run full workflow
+    data_results = redirect_stdout(devnull) do
+        PIIScanner.scan_data_files([data_file])
+    end
+
+    data_results
+end
