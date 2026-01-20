@@ -5,3 +5,8 @@ makedocs(sitename="PIIScanner.jl Documentation",
         authors = "Florian Oswald",
         repo = Documenter.Remotes.GitHub("floswald","PIIScanner.jl"))
 
+
+deploydocs(
+        repo = "github.com/floswald/PIIScanner.jl.git",
+        versions = nothing
+        )
