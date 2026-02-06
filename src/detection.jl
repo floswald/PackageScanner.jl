@@ -99,8 +99,7 @@ function scan_data_file(filepath::String;
     
     # Use R+rio to load the file metadata
     data = load_data_metadata(filepath)
-    @infiltrate
-    
+    # @infiltrate
     if isnothing(data)
         return matches
     end
@@ -114,7 +113,8 @@ function scan_data_file(filepath::String;
     
     for k in var_names
         var_name = k
-        var_label = isnothing(var_labels[Symbol(k)]) ? nothing : var_labels[Symbol(k)]
+        # @infiltrate
+        var_label = isnothing(var_labels) ? nothing : var_labels[Symbol(k)]
         var_samples = samples[k]
         
         matched_terms = String[]
