@@ -171,3 +171,28 @@ end
     @test all(values(out["var_labels"]) .== labels)
 
 end
+
+@testitem "read mat file" begin
+    using MAT
+    tmpdir = mktempdir()
+    file1 = joinpath(tmpdir, "output.mat")
+    # Write all variables at once
+    MAT.matwrite(file1, Dict(
+        "x" => [1, 2, 3],
+        "y" => rand(5, 5),
+        "lat" => rand(10),
+        "lon" => rand(80),
+        "name" => "my_data"
+    ))
+
+    meta = PIIScanner.load_data_metadata(file1)
+    @test Set(meta["var_names"]) == Set(["x","y","lat","lon","name"])
+
+end
+
+@testitem "read meta of pickle data" begin
+    dta = joinpath(@__DIR__, "data", "ragged_data.pkl")
+    out = PIIScanner.load_data_metadata(dta)
+
+    @test Set(out["var_names"]) == Set(["mixed_types", "nested_dict", "arrays"])
+end

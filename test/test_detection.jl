@@ -99,3 +99,11 @@ end
     @test isnothing(match.variable_label)
     @test isempty(match.sample_values)
 end
+
+
+@testitem "read meta of pickle data" begin
+    dta = joinpath(@__DIR__, "data", "ragged_data.pkl")
+    out = PIIScanner.scan_data_file(dta)
+
+    @test isempty(out)
+end

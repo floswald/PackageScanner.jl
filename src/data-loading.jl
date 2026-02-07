@@ -24,6 +24,7 @@ println(metadata["var_names"])
 function load_data_metadata(filepath::String, max_rows = 1000)
     
     fname, ext = Base.Filesystem.splitext(filepath)
+    ext = lowercase(ext)
 
     if ext == ".csv"
         # Read CSV with Julia's CSV package
@@ -35,6 +36,13 @@ function load_data_metadata(filepath::String, max_rows = 1000)
         end
         
         # Extract metadata using Julia function
+        return extract_metadata(data)
+
+    elseif ext == ".mat"
+        data = matread(filepath)
+        return extract_metadata(data)
+    elseif (ext == ".pkl" || ext == ".pickle")
+        data = Pickle.load(filepath)
         return extract_metadata(data)
     else
         # Use R only to read the data (no metadata extraction in R)
@@ -58,8 +66,16 @@ function load_data_metadata(filepath::String, max_rows = 1000)
         """
             
         # Get the data from R
-        @rget data
-        @rget labs
+        # this only works for very simple conversions
+        # basically rectangular data structures only
+        labs = nothing
+        try
+            @rget data
+            @rget labs
+        catch
+            @warn "conversion failed: $filepath"
+            data = nothing
+        end
         
         # Extract metadata using the same Julia function
         return extract_metadata(data, labels = labs)
@@ -70,10 +86,11 @@ end
     extract_metadata(data)
 
 Extract metadata from a dataset, including variable names, labels, and sample values.
-Works with both CSV.File objects and R dataframes.
+Works with DataFrames, Dicts, and other tabular objects.
 
 # Arguments
-- `data`: A dataset (CSV.File or dataframe)
+- `data`: A dataset (DataFrame, Dict, CSV.File, etc.)
+- `labels`: Optional variable labels
 
 # Returns
 - `Dict` with keys: `var_names`, `var_labels`, `samples`
@@ -83,31 +100,64 @@ function extract_metadata(data; labels = nothing)
         return nothing
     end
     
-    # Get variable names
-    var_names = names(data)
-    
-    # Get sample values for each variable (up to 5 unique non-missing)
-    samples = Dict{String, Vector{String}}()
-    for name in var_names
-        col = data[!, name]
-        # Filter out missing values
-        non_missing = filter(!ismissing, col)
-        # Get unique values
-        unique_vals = unique(non_missing)
-        # Take up to 5 samples
-        n_samples = min(5, length(unique_vals))
-        if n_samples > 0
-            # Convert to strings
-            samples[String(name)] = map(x -> string(x), unique_vals[1:n_samples])
-        else
-            samples[String(name)] = String[]
+    # Handle Dict separately
+    if data isa AbstractDict
+        var_names = collect(keys(data))
+        
+        # Get sample values for each key
+        samples = Dict{String, Vector{String}}()
+        for name in var_names
+            val = data[name]
+            
+            # Handle different value types
+            if val isa AbstractVector
+                # Vector: treat like a column
+                non_missing = filter(!ismissing, val)
+                unique_vals = unique(non_missing)
+                n_samples = min(5, length(unique_vals))
+                if n_samples > 0
+                    samples[String(name)] = map(x -> string(x), unique_vals[1:n_samples])
+                else
+                    samples[String(name)] = String[]
+                end
+            else
+                # Scalar or other type: just convert to string
+                samples[String(name)] = [string(val)]
+            end
         end
+        
+        return Dict(
+            "var_names" => map(String, var_names),
+            "var_labels" => labels,
+            "samples" => samples
+        )
+    else
+        # Handle DataFrame-like objects (original logic)
+        var_names = names(data)
+        
+        # Get sample values for each variable (up to 5 unique non-missing)
+        samples = Dict{String, Vector{String}}()
+        for name in var_names
+            col = data[!, name]
+            # Filter out missing values
+            non_missing = filter(!ismissing, col)
+            # Get unique values
+            unique_vals = unique(non_missing)
+            # Take up to 5 samples
+            n_samples = min(5, length(unique_vals))
+            if n_samples > 0
+                # Convert to strings
+                samples[String(name)] = map(x -> string(x), unique_vals[1:n_samples])
+            else
+                samples[String(name)] = String[]
+            end
+        end
+        
+        # Return as dictionary
+        return Dict(
+            "var_names" => map(String, var_names),
+            "var_labels" => labels,
+            "samples" => samples
+        )
     end
-    
-    # Return as dictionary
-    return Dict(
-        "var_names" => map(String, var_names),
-        "var_labels" => labels,
-        "samples" => samples
-    )
 end

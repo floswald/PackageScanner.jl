@@ -11,6 +11,8 @@ CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
+Pickle = "fbb45041-c46e-462f-888f-7c521cafbc2c"
 RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
@@ -18,6 +20,8 @@ TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
 [compat]
 CSV = "0.10.15"
 DataFrames = "1.8.1"
+MAT = "0.11.4"
+Pickle = "0.3.6"
 julia = "1.10"
 
 [extras]
