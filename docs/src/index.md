@@ -179,5 +179,5 @@ Here are three main things to keep in mind:
 # All Docstrings
 
 ```@autodocs
-Modules = [PIIScanner]
+Modules = [PackageScanner]
 ```

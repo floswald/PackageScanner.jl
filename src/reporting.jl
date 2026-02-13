@@ -337,7 +337,7 @@ function full_example()
     return data_file
     # Run full workflow
     data_results = redirect_stdout(devnull) do
-        PIIScanner.scan_data_files([data_file])
+        PackageScanner.scan_data_files([data_file])
     end
 
     data_results
