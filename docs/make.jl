@@ -1,7 +1,7 @@
 using Documenter, PackageScanner
 
 makedocs(sitename="PackageScanner.jl Documentation", 
-        modules = [PIIScanner],
+        modules = [PackageScanner],
         authors = "Florian Oswald",
         repo = Documenter.Remotes.GitHub("floswald","PackageScanner.jl"))
 
