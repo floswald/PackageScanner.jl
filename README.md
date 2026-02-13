@@ -1,15 +1,16 @@
 # PackageScanner.jl
 
-[![Build Status](https://github.com/floswald/PIIScanner.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/floswald/PIIScanner.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Build Status](https://github.com/floswald/PackageScanner.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/floswald/PackageScanner.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 A comprehensive Julia package for **scanning and analyzing research replication packages**. PackageScanner combines PII detection, file path analysis, metadata extraction, and package validation in one tool.
 
-**Note:** This package was formerly known as PIIScanner.jl and has been expanded by merging with JPEtools.jl to provide comprehensive replication package analysis.
+This package is part of the [JPE Data Editor's](https://github.com/organizations/JPE-Reproducibility/) toolkit. Included functionality has been greatly inspired by the [AEA Data Editor's](https://github.com/AEADataEditor/replication-template-development) replication template setup.
 
 ## Features
 
 ### PII Detection
-Based on the methodology from [J-PAL's PII-Scan](https://github.com/J-PAL/PII-Scan), scans variable names, labels, and code for personally identifiable information (PII) to help researchers comply with privacy regulations like GDPR.
+
+Based on the methodology from [J-PAL's PII-Scan](https://github.com/J-PAL/PII-Scan), scans variable names, labels, and code for personally identifiable information (PII) to help researchers comply with privacy regulations like GDPR. See [below](#what-does-gdpr-mean-for-researchers) for legal implications.
 
 - **Fast Stata and CSV readers**: Reads only the first 1000 rows to avoid performance issues
 - **Multi-format data support**: Uses R's `rio` package to read SPSS, SAS, Excel, CSV, and [many other formats](https://gesistsa.github.io/rio/#supported-file-formats)
@@ -130,35 +131,6 @@ first_name, fname, last_name, lname, name, phone, ssn, and more...
 
 See `PackageScanner.DEFAULT_PII_TERMS` for the complete list.
 
-## Migration Guide
-
-### From PIIScanner.jl
-
-Simply replace `using PIIScanner` with `using PackageScanner`. All existing function names remain the same.
-
-```julia
-# Old
-using PIIScanner
-data_results = PIIScanner.scan_data_files(files)
-
-# New
-using PackageScanner
-data_results = PackageScanner.scan_data_files(files)
-```
-
-### From JPEtools.jl
-
-JPEtools.jl has been merged into PackageScanner. Replace `using JPEtools` with `using PackageScanner`:
-
-```julia
-# Old
-using JPEtools
-JPEtools.precheck_package("/path/to/package")
-
-# New
-using PackageScanner
-PackageScanner.precheck_package("/path/to/package")
-```
 
 ## Example Reports
 
