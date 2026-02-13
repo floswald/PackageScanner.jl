@@ -1,4 +1,4 @@
-using PIIScanner
+using PackageScanner
 using Test
 using TestItemRunner
 using MAT
