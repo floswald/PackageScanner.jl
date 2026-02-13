@@ -1,40 +1,40 @@
 @testitem "find_pii_terms - basic matching" begin
     # Should match
-    @test "name" in PIIScanner.find_pii_terms("first_name", PIIScanner.DEFAULT_PII_TERMS)
-    @test "email" in PIIScanner.find_pii_terms("user_email", PIIScanner.DEFAULT_PII_TERMS)
-    @test "phone" in PIIScanner.find_pii_terms("contact_phone", PIIScanner.DEFAULT_PII_TERMS)
+    @test "name" in PackageScanner.find_pii_terms("first_name", PackageScanner.DEFAULT_PII_TERMS)
+    @test "email" in PackageScanner.find_pii_terms("user_email", PackageScanner.DEFAULT_PII_TERMS)
+    @test "phone" in PackageScanner.find_pii_terms("contact_phone", PackageScanner.DEFAULT_PII_TERMS)
     
     # Should not match
-    @test isempty(PIIScanner.find_pii_terms("randomvar", PIIScanner.DEFAULT_PII_TERMS))
-    @test isempty(PIIScanner.find_pii_terms("count", PIIScanner.DEFAULT_PII_TERMS))
-    @test isempty(PIIScanner.find_pii_terms("x123", PIIScanner.DEFAULT_PII_TERMS))
+    @test isempty(PackageScanner.find_pii_terms("randomvar", PackageScanner.DEFAULT_PII_TERMS))
+    @test isempty(PackageScanner.find_pii_terms("count", PackageScanner.DEFAULT_PII_TERMS))
+    @test isempty(PackageScanner.find_pii_terms("x123", PackageScanner.DEFAULT_PII_TERMS))
 end
 
 @testitem "find_pii_terms - case insensitive" begin
-    @test "name" in PIIScanner.find_pii_terms("FIRST_NAME", PIIScanner.DEFAULT_PII_TERMS)
-    @test "email" in PIIScanner.find_pii_terms("Email_Address", PIIScanner.DEFAULT_PII_TERMS)
-    @test "phone" in PIIScanner.find_pii_terms("PhoneNumber", PIIScanner.DEFAULT_PII_TERMS)
+    @test "name" in PackageScanner.find_pii_terms("FIRST_NAME", PackageScanner.DEFAULT_PII_TERMS)
+    @test "email" in PackageScanner.find_pii_terms("Email_Address", PackageScanner.DEFAULT_PII_TERMS)
+    @test "phone" in PackageScanner.find_pii_terms("PhoneNumber", PackageScanner.DEFAULT_PII_TERMS)
 end
 
 @testitem "find_pii_terms - strict mode word boundaries" begin
     # Strict mode: should match whole words only
-    @test "name" in PIIScanner.find_pii_terms("name", PIIScanner.DEFAULT_PII_TERMS, strict=true)
-    @test "name" in PIIScanner.find_pii_terms("first_name", PIIScanner.DEFAULT_PII_TERMS, strict=true)
+    @test "name" in PackageScanner.find_pii_terms("name", PackageScanner.DEFAULT_PII_TERMS, strict=true)
+    @test "name" in PackageScanner.find_pii_terms("first_name", PackageScanner.DEFAULT_PII_TERMS, strict=true)
     
     # Strict mode: should NOT match partial words
-    @test isempty(PIIScanner.find_pii_terms("filename", PIIScanner.DEFAULT_PII_TERMS, strict=true))
-    @test isempty(PIIScanner.find_pii_terms("rename", PIIScanner.DEFAULT_PII_TERMS, strict=true))
-    @test isempty(PIIScanner.find_pii_terms("latitude", PIIScanner.DEFAULT_PII_TERMS, strict=true))
+    @test isempty(PackageScanner.find_pii_terms("filename", PackageScanner.DEFAULT_PII_TERMS, strict=true))
+    @test isempty(PackageScanner.find_pii_terms("rename", PackageScanner.DEFAULT_PII_TERMS, strict=true))
+    @test isempty(PackageScanner.find_pii_terms("latitude", PackageScanner.DEFAULT_PII_TERMS, strict=true))
 end
 
 @testitem "find_pii_terms - non-strict mode" begin
     # Non-strict: should match substrings
-    @test "name" in PIIScanner.find_pii_terms("filename", PIIScanner.DEFAULT_PII_TERMS, strict=false)
-    @test "lat" in PIIScanner.find_pii_terms("latitude", PIIScanner.DEFAULT_PII_TERMS, strict=false)
+    @test "name" in PackageScanner.find_pii_terms("filename", PackageScanner.DEFAULT_PII_TERMS, strict=false)
+    @test "lat" in PackageScanner.find_pii_terms("latitude", PackageScanner.DEFAULT_PII_TERMS, strict=false)
 end
 
 @testitem "find_pii_terms - multiple matches" begin
-    matches = PIIScanner.find_pii_terms("person_name_email_address", PIIScanner.DEFAULT_PII_TERMS)
+    matches = PackageScanner.find_pii_terms("person_name_email_address", PackageScanner.DEFAULT_PII_TERMS)
     @test "name" in matches
     @test "email" in matches
     @test "address" in matches
@@ -42,37 +42,37 @@ end
 end
 
 @testitem "is_false_positive_context - imports" begin
-    @test PIIScanner.is_false_positive_context("import pandas as pd")
-    @test PIIScanner.is_false_positive_context("from datetime import datetime")
-    @test PIIScanner.is_false_positive_context("require(dplyr)")
-    @test PIIScanner.is_false_positive_context("library(tidyverse)")
-    @test PIIScanner.is_false_positive_context("using DataFrames")
-    @test PIIScanner.is_false_positive_context("#include <stdio.h>")
+    @test PackageScanner.is_false_positive_context("import pandas as pd")
+    @test PackageScanner.is_false_positive_context("from datetime import datetime")
+    @test PackageScanner.is_false_positive_context("require(dplyr)")
+    @test PackageScanner.is_false_positive_context("library(tidyverse)")
+    @test PackageScanner.is_false_positive_context("using DataFrames")
+    @test PackageScanner.is_false_positive_context("#include <stdio.h>")
 end
 
 @testitem "is_false_positive_context - function definitions" begin
-    @test PIIScanner.is_false_positive_context("function process_name(x)")
-    @test PIIScanner.is_false_positive_context("def get_email():")
-    @test PIIScanner.is_false_positive_context("sub check_phone {")
-    @test PIIScanner.is_false_positive_context("class Person {")
-    @test PIIScanner.is_false_positive_context("struct UserData {")
+    @test PackageScanner.is_false_positive_context("function process_name(x)")
+    @test PackageScanner.is_false_positive_context("def get_email():")
+    @test PackageScanner.is_false_positive_context("sub check_phone {")
+    @test PackageScanner.is_false_positive_context("class Person {")
+    @test PackageScanner.is_false_positive_context("struct UserData {")
 end
 
 @testitem "is_false_positive_context - decorators" begin
-    @test PIIScanner.is_false_positive_context("@property")
-    @test PIIScanner.is_false_positive_context("@staticmethod")
-    @test PIIScanner.is_false_positive_context("@test")
+    @test PackageScanner.is_false_positive_context("@property")
+    @test PackageScanner.is_false_positive_context("@staticmethod")
+    @test PackageScanner.is_false_positive_context("@test")
 end
 
 @testitem "is_false_positive_context - real code should pass" begin
-    @test !PIIScanner.is_false_positive_context("df['first_name'] = 'John'")
-    @test !PIIScanner.is_false_positive_context("x = data\$email")
-    @test !PIIScanner.is_false_positive_context("SELECT name, phone FROM users")
-    @test !PIIScanner.is_false_positive_context("gen birth_year = 2024 - age")
+    @test !PackageScanner.is_false_positive_context("df['first_name'] = 'John'")
+    @test !PackageScanner.is_false_positive_context("x = data\$email")
+    @test !PackageScanner.is_false_positive_context("SELECT name, phone FROM users")
+    @test !PackageScanner.is_false_positive_context("gen birth_year = 2024 - age")
 end
 
 @testitem "PIIMatch structure" begin
-    match = PIIScanner.PIIMatch(
+    match = PackageScanner.PIIMatch(
         "data/test.dta",
         "first_name",
         "First Name of Respondent",
@@ -88,7 +88,7 @@ end
 end
 
 @testitem "PIIMatch with nothing label" begin
-    match = PIIScanner.PIIMatch(
+    match = PackageScanner.PIIMatch(
         "data/test.csv",
         "col1",
         nothing,
@@ -103,7 +103,7 @@ end
 
 @testitem "read meta of pickle data" begin
     dta = joinpath(@__DIR__, "data", "ragged_data.pkl")
-    out = PIIScanner.scan_data_file(dta)
+    out = PackageScanner.scan_data_file(dta)
 
     @test isempty(out)
 end

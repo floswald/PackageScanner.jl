@@ -11,7 +11,7 @@
         println(io, "Jane,25,jane@example.com")
     end
     
-    metadata = PIIScanner.load_data_metadata(csv_file)
+    metadata = PackageScanner.load_data_metadata(csv_file)
     
     @test !isnothing(metadata)
     @test "name" in metadata["var_names"]
@@ -21,7 +21,7 @@
 end
 
 @testitem "load_data_metadata - nonexistent file" tags=[:skipci] begin
-    metadata = PIIScanner.load_data_metadata("/nonexistent/file.csv")
+    metadata = PackageScanner.load_data_metadata("/nonexistent/file.csv")
     @test isnothing(metadata)
 end
 
@@ -36,7 +36,7 @@ end
         println(io, "2,Jane,Smith,1985-05-15,jane@example.com")
     end
     
-    matches = PIIScanner.scan_data_file(csv_file)
+    matches = PackageScanner.scan_data_file(csv_file)
     
     @test !isempty(matches)
     @test any(m -> m.variable_name == "first_name", matches)
@@ -56,11 +56,11 @@ end
     end
     
     # Non-strict: should match 'filename' and 'latitude'
-    matches_nonstrict = PIIScanner.scan_data_file(csv_file, strict=false)
+    matches_nonstrict = PackageScanner.scan_data_file(csv_file, strict=false)
     @test any(m -> m.variable_name == "filename", matches_nonstrict)
     
     # Strict: should NOT match 'filename' or 'latitude'
-    matches_strict = PIIScanner.scan_data_file(csv_file, strict=true)
+    matches_strict = PackageScanner.scan_data_file(csv_file, strict=true)
     @test !any(m -> m.variable_name == "filename", matches_strict)
     @test any(m -> m.variable_name == "name", matches_strict)
 end
@@ -75,7 +75,7 @@ end
         println(io, "P001,flu,rest")
     end
     
-    matches = PIIScanner.scan_data_file(csv_file, custom_terms=["patient_id", "diagnosis"])
+    matches = PackageScanner.scan_data_file(csv_file, custom_terms=["patient_id", "diagnosis"])
     
     @test any(m -> "patient_id" in m.matched_terms, matches)
     @test any(m -> "diagnosis" in m.matched_terms, matches)
@@ -93,7 +93,7 @@ end
         println(io, "Charlie,300")
     end
     
-    matches = PIIScanner.scan_data_file(csv_file)
+    matches = PackageScanner.scan_data_file(csv_file)
     
     name_match = findfirst(m -> m.variable_name == "name", matches)
     @test !isnothing(name_match)
@@ -120,7 +120,7 @@ end
     end
     
     matches = redirect_stdout(devnull) do
-        PIIScanner.scan_data_files([file1, file2])
+        PackageScanner.scan_data_files([file1, file2])
     end
     
     @test !isempty(matches)
@@ -138,9 +138,9 @@ end
         println(io, "A,10")
     end
 
-    @test isnothing(PIIScanner.extract_metadata(nothing))
+    @test isnothing(PackageScanner.extract_metadata(nothing))
     
-    call = PIIScanner.load_data_metadata(file2)
+    call = PackageScanner.load_data_metadata(file2)
     @test isa(call, Dict)
 
     @test isa(call["var_names"],Vector{String})
@@ -151,7 +151,7 @@ end
 
 @testitem "extract a stata file" begin
     dta = joinpath(@__DIR__, "data", "auto.dta")
-    out = PIIScanner.load_data_metadata(dta)
+    out = PackageScanner.load_data_metadata(dta)
 
     labels = [
         "Make and model",
@@ -185,14 +185,14 @@ end
         "name" => "my_data"
     ))
 
-    meta = PIIScanner.load_data_metadata(file1)
+    meta = PackageScanner.load_data_metadata(file1)
     @test Set(meta["var_names"]) == Set(["x","y","lat","lon","name"])
 
 end
 
 @testitem "read meta of pickle data" begin
     dta = joinpath(@__DIR__, "data", "ragged_data.pkl")
-    out = PIIScanner.load_data_metadata(dta)
+    out = PackageScanner.load_data_metadata(dta)
 
     @test Set(out["var_names"]) == Set(["mixed_types", "nested_dict", "arrays"])
 end

@@ -13,9 +13,6 @@ using Pickle
 using Glob
 using PDFIO
 using Printf
-using HTTP
-using JSON3
-using Pkg
 using SHA
 using TestItems
 
