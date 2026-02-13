@@ -19,11 +19,11 @@
     
     # Run full workflow
     data_results = redirect_stdout(devnull) do
-        PIIScanner.scan_data_files([data_file])
+        PackageScanner.scan_data_files([data_file])
     end
     
     code_results = redirect_stdout(devnull) do
-        PIIScanner.scan_code_files([code_file])
+        PackageScanner.scan_code_files([code_file])
     end
     
     @test !isempty(data_results)
@@ -34,7 +34,7 @@
     mkpath(output_dir)
     
     redirect_stdout(devnull) do
-        PIIScanner.write_pii_report(data_results, code_results, output_dir)
+        PackageScanner.write_pii_report(data_results, code_results, output_dir)
     end
     
     @test isfile(joinpath(output_dir, "report-pii.md"))
@@ -54,7 +54,7 @@ end
     
     # Scan with custom terms
     data_results = redirect_stdout(devnull) do
-        PIIScanner.scan_data_files([data_file], custom_terms=["patient_id", "diagnosis", "treatment_plan"])
+        PackageScanner.scan_data_files([data_file], custom_terms=["patient_id", "diagnosis", "treatment_plan"])
     end
     
     @test !isempty(data_results)
@@ -74,13 +74,13 @@ end
     
     # Non-strict should flag both
     matches_nonstrict = redirect_stdout(devnull) do
-        PIIScanner.scan_data_files([data_file], strict=false)
+        PackageScanner.scan_data_files([data_file], strict=false)
     end
     @test any(m -> m.variable_name == "filename", matches_nonstrict)
     
     # Strict should only flag 'name'
     matches_strict = redirect_stdout(devnull) do
-        PIIScanner.scan_data_files([data_file], strict=true)
+        PackageScanner.scan_data_files([data_file], strict=true)
     end
     @test !any(m -> m.variable_name == "filename", matches_strict)
     @test any(m -> m.variable_name == "name", matches_strict)

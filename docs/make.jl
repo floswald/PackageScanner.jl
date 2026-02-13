@@ -1,12 +1,12 @@
-using Documenter, PIIScanner
+using Documenter, PackageScanner
 
-makedocs(sitename="PIIScanner.jl Documentation", 
-        modules = [PIIScanner],
+makedocs(sitename="PackageScanner.jl Documentation", 
+        modules = [PackageScanner],
         authors = "Florian Oswald",
-        repo = Documenter.Remotes.GitHub("floswald","PIIScanner.jl"))
+        repo = Documenter.Remotes.GitHub("floswald","PackageScanner.jl"))
 
 
 deploydocs(
-        repo = "github.com/floswald/PIIScanner.jl.git",
+        repo = "github.com/floswald/PackageScanner.jl.git",
         versions = nothing
         )

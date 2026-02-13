@@ -1,5 +1,5 @@
 @testitem "generate_summary_table - empty results" begin
-    table = PIIScanner.generate_summary_table(PIIScanner.PIIMatch[], PIIScanner.PIIMatch[])
+    table = PackageScanner.generate_summary_table(PackageScanner.PIIMatch[], PackageScanner.PIIMatch[])
     
     @test occursin("| File Type | File | Variables/References | PII Categories |", table)
     @test occursin("|-----------|------|", table)
@@ -7,12 +7,12 @@ end
 
 @testitem "generate_summary_table - with data results" begin
     matches = [
-        PIIScanner.PIIMatch("data/file1.dta", "name", nothing, ["name"], ["John"]),
-        PIIScanner.PIIMatch("data/file1.dta", "email", nothing, ["email"], ["john@example.com"]),
-        PIIScanner.PIIMatch("data/file2.csv", "phone", nothing, ["phone"], ["555-1234"]),
+        PackageScanner.PIIMatch("data/file1.dta", "name", nothing, ["name"], ["John"]),
+        PackageScanner.PIIMatch("data/file1.dta", "email", nothing, ["email"], ["john@example.com"]),
+        PackageScanner.PIIMatch("data/file2.csv", "phone", nothing, ["phone"], ["555-1234"]),
     ]
     
-    table = PIIScanner.generate_summary_table(matches, PIIScanner.PIIMatch[])
+    table = PackageScanner.generate_summary_table(matches, PackageScanner.PIIMatch[])
     
     @test occursin("| Data |", table)
     @test occursin("file1.dta", table)
@@ -22,24 +22,24 @@ end
 
 @testitem "generate_summary_table - with code results" begin
     code_matches = [
-        PIIScanner.PIIMatch("src/script.R", "Line 5", nothing, ["name", "email"], ["df\$name <- x"]),
+        PackageScanner.PIIMatch("src/script.R", "Line 5", nothing, ["name", "email"], ["df\$name <- x"]),
     ]
     
-    table = PIIScanner.generate_summary_table(PIIScanner.PIIMatch[], code_matches)
+    table = PackageScanner.generate_summary_table(PackageScanner.PIIMatch[], code_matches)
     
     @test occursin("| Code |", table)
     @test occursin("script.R", table)
 end
 
 @testitem "generate_detailed_appendix - empty results" begin
-    appendix = PIIScanner.generate_detailed_appendix(PIIScanner.PIIMatch[], PIIScanner.PIIMatch[])
+    appendix = PackageScanner.generate_detailed_appendix(PackageScanner.PIIMatch[], PackageScanner.PIIMatch[])
     
     @test appendix == ""
 end
 
 @testitem "generate_detailed_appendix - with data" begin
     matches = [
-        PIIScanner.PIIMatch(
+        PackageScanner.PIIMatch(
             "data/survey.dta",
             "first_name",
             "First Name",
@@ -48,7 +48,7 @@ end
         ),
     ]
     
-    appendix = PIIScanner.generate_detailed_appendix(matches, PIIScanner.PIIMatch[])
+    appendix = PackageScanner.generate_detailed_appendix(matches, PackageScanner.PIIMatch[])
     
     @test occursin("### Data Files", appendix)
     @test occursin("survey.dta", appendix)
@@ -60,7 +60,7 @@ end
 
 @testitem "generate_detailed_appendix - path splitting" begin
     matches = [
-        PIIScanner.PIIMatch(
+        PackageScanner.PIIMatch(
             "/home/user/project/data/survey.dta",
             "name",
             nothing,
@@ -69,7 +69,7 @@ end
         ),
     ]
     
-    appendix = PIIScanner.generate_detailed_appendix(matches, PIIScanner.PIIMatch[], splitat="/project/")
+    appendix = PackageScanner.generate_detailed_appendix(matches, PackageScanner.PIIMatch[], splitat="/project/")
     
     @test occursin("data/survey.dta", appendix)
     @test !occursin("/home/user/project/", appendix)
@@ -79,9 +79,9 @@ end
     tmpdir = mktempdir()
     
     redirect_stdout(devnull) do
-        PIIScanner.write_pii_report(
-            PIIScanner.PIIMatch[],
-            PIIScanner.PIIMatch[],
+        PackageScanner.write_pii_report(
+            PackageScanner.PIIMatch[],
+            PackageScanner.PIIMatch[],
             tmpdir
         )
     end
@@ -98,15 +98,15 @@ end
     tmpdir = mktempdir()
     
     data_matches = [
-        PIIScanner.PIIMatch("data/file.dta", "name", nothing, ["name"], ["John"]),
+        PackageScanner.PIIMatch("data/file.dta", "name", nothing, ["name"], ["John"]),
     ]
     
     code_matches = [
-        PIIScanner.PIIMatch("src/script.R", "Line 1", nothing, ["email"], ["df\$email"]),
+        PackageScanner.PIIMatch("src/script.R", "Line 1", nothing, ["email"], ["df\$email"]),
     ]
     
     redirect_stdout(devnull) do
-        PIIScanner.write_pii_report(data_matches, code_matches, tmpdir)
+        PackageScanner.write_pii_report(data_matches, code_matches, tmpdir)
     end
     
     # Check main report
@@ -131,7 +131,7 @@ end
     tmpdir = mktempdir()
     
     matches = [
-        PIIScanner.PIIMatch(
+        PackageScanner.PIIMatch(
             "/home/user/project/data/survey.dta",
             "first_name",
             "First Name",
@@ -141,7 +141,7 @@ end
     ]
     
     redirect_stdout(devnull) do
-        PIIScanner.write_pii_report_simple(matches, PIIScanner.PIIMatch[], tmpdir, splitat="/project/")
+        PackageScanner.write_pii_report_simple(matches, PackageScanner.PIIMatch[], tmpdir, splitat="/project/")
     end
     
     report_path = joinpath(tmpdir, "report-pii.md")

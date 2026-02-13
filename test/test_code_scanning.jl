@@ -9,7 +9,7 @@
         println(io, "summary(model)")
     end
     
-    matches = PIIScanner.scan_code_file(test_file)
+    matches = PackageScanner.scan_code_file(test_file)
     
     @test !isempty(matches)
     @test any(m -> "name" in m.matched_terms, matches)
@@ -27,7 +27,7 @@ end
         println(io, "df['user_email'] = clean(df['email'])")
     end
     
-    matches = PIIScanner.scan_code_file(test_file)
+    matches = PackageScanner.scan_code_file(test_file)
     
     # Should not flag imports and function definitions
     @test !any(m -> occursin("import", m.sample_values[1]), matches)
@@ -45,11 +45,11 @@ end
     end
     
     # Non-strict: should match both
-    matches_nonstrict = PIIScanner.scan_code_file(test_file, strict=false)
+    matches_nonstrict = PackageScanner.scan_code_file(test_file, strict=false)
     @test length(matches_nonstrict) >= 2
     
     # Strict: should only match second line
-    matches_strict = PIIScanner.scan_code_file(test_file, strict=true)
+    matches_strict = PackageScanner.scan_code_file(test_file, strict=true)
     @test length(matches_strict) >= 1
     @test any(m -> occursin("first_name", m.sample_values[1]), matches_strict)
 end
@@ -61,7 +61,7 @@ end
         println(io, "df.study_id = 'ABC'")
     end
     
-    matches = PIIScanner.scan_code_file(test_file, custom_terms=["patient_id", "study_id"])
+    matches = PackageScanner.scan_code_file(test_file, custom_terms=["patient_id", "study_id"])
     
     @test !isempty(matches)
     @test any(m -> "patient_id" in m.matched_terms, matches)
@@ -72,13 +72,13 @@ end
     test_file = joinpath(mktempdir(), "empty.R")
     touch(test_file)
     
-    matches = PIIScanner.scan_code_file(test_file)
+    matches = PackageScanner.scan_code_file(test_file)
     @test isempty(matches)
 end
 
 @testitem "scan_code_file - nonexistent file" begin
     # Should warn and return empty, not error
-    matches = PIIScanner.scan_code_file("/nonexistent/file.R")
+    matches = PackageScanner.scan_code_file("/nonexistent/file.R")
     @test isempty(matches)
 end
 
@@ -103,7 +103,7 @@ end
     
     # Redirect stdout to suppress progress output
     matches = redirect_stdout(devnull) do
-        PIIScanner.scan_code_files([file1, file2, file3])
+        PackageScanner.scan_code_files([file1, file2, file3])
     end
     
     @test !isempty(matches)

@@ -1,6 +1,6 @@
-name = "PIIScanner"
+name = "PackageScanner"
 uuid = "cf352d04-0051-48bd-b141-6a91af5c6085"
-version = "1.0.0-DEV"
+version = "1.0.0"
 authors = ["Florian Oswald <florian.oswald@gmail.com> and contributors"]
 
 [workspace]
@@ -10,14 +10,21 @@ projects = ["docs"]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
+PDFIO = "4d0d745f-9d9a-592e-8d18-1ad8a0f42b92"
 Pickle = "fbb45041-c46e-462f-888f-7c521cafbc2c"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
+TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 
 [compat]
+CSV = "0.10.15"
+PDFIO = "0.1.15"
 julia = "1.10"
 
 [extras]
