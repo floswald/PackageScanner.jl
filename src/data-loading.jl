@@ -96,9 +96,11 @@ Works with DataFrames, Dicts, and other tabular objects.
 - `Dict` with keys: `var_names`, `var_labels`, `samples`
 """
 function extract_metadata(data; labels = nothing)
-    if isnothing(data)
+    if isnothing(data) || data isa Number
         return nothing
     end
+
+
     
     # Handle Dict separately
     if data isa AbstractDict
