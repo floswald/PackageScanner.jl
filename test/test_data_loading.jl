@@ -140,6 +140,8 @@ end
 
     @test isnothing(PackageScanner.extract_metadata(nothing))
     
+    @test isnothing(PackageScanner.extract_metadata(1.1))
+    
     call = PackageScanner.load_data_metadata(file2)
     @test isa(call, Dict)
 
