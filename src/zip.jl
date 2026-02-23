@@ -67,3 +67,13 @@ function rm_git(extract_dir)
         end
     end
 end
+
+"bug workaround until https://github.com/JuliaLang/julia/pull/59662"
+function mycp(src::AbstractString, dst::AbstractString; recursive::Bool = false, force::Bool=false)
+    cmd = Sys.iswindows() ? `cmd /c copy` : `cp`
+    force_option = Sys.iswindows() ? (force ? `/y` : `/-y`) : (force ? `-f` : `-n`)
+    recursive_option = Sys.iswindows() ? (recursive ? `/r` : ``) : (recursive ? `-r` : ``)
+    cmd = `$cmd $force_option`
+    cmd = `$cmd $recursive_option`
+    run(`$cmd $src $dst`)
+end
