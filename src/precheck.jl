@@ -80,8 +80,10 @@ function precheck_package(pkg_loc::String)
 
     # Look for PII
     @info "Look for PII in data and code files"
-    data_matches = scan_data_files(datafiles)
-    code_matches = scan_code_files(codefiles)
+
+    # don't filter stuff in hidden __MACOSX
+    data_matches = scan_data_files(filter(x -> !contains(x, "__MACOSX"), datafiles))
+    code_matches = scan_code_files(filter(x -> !contains(x, "__MACOSX"), codefiles))
     write_pii_report(data_matches, code_matches, out, splitat = dirname(pkg_loc))
 
     # Parse README
