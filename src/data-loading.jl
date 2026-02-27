@@ -51,7 +51,13 @@ function load_data_metadata(filepath::String, max_rows = 1000)
 
         # we only read the first 1000 rows of a stata file
         if (is_dta) {
-            data = haven::read_dta($filepath, n_max = $max_rows)
+            data = tryCatch(
+                haven::read_dta($filepath, n_max = $max_rows),
+                error = function(e){
+                    message("Could not read file: ", $filepath)
+                    return(NULL)
+                }
+            )
         } else {
             data <- tryCatch(
                 rio::import($filepath),
