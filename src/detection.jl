@@ -113,6 +113,7 @@ function scan_data_file(filepath::String;
     
     for k in var_names
         var_name = k
+        @debug "varname: $var_name"
         # @infiltrate
         var_label = isnothing(var_labels) ? nothing : var_labels[Symbol(k)]
         var_samples = samples[k]
@@ -124,7 +125,15 @@ function scan_data_file(filepath::String;
         
         # Check variable label if it exists
         if !isnothing(var_label) && !ismissing(var_label)
-            append!(matched_terms, find_pii_terms(var_label, search_terms, strict=strict))
+            @debug "label = $var_label"
+            if !isa(var_label,String)
+                @warn """
+                skipping label for variable $k because it is type $(typeof(var_label)) and of value
+                    $(var_label)
+                """
+            else
+                append!(matched_terms, find_pii_terms(var_label, search_terms, strict=strict))
+            end
         end
         
         # If we found matches, record them
