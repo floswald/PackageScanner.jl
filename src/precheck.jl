@@ -46,7 +46,11 @@ pkg_dir, manifest = prepare_package_for_precheck("large.zip")
 precheck_package(pkg_dir, pre_manifest=manifest)
 ```
 """
-function precheck_package(pkg_loc::String; pre_manifest::Union{Nothing,DataFrame}=nothing)
+function precheck_package(pkg_loc::String; 
+    pre_manifest::Union{Nothing,DataFrame}=nothing,
+    no_data_scan = ["__MACOSX","renv"],
+    no_code_scan = ["__MACOSX"],
+    )
 
     pkg_root = joinpath(pkg_loc, "..")
     @info "Starting precheck of package $(basename(pkg_root))"
@@ -99,8 +103,14 @@ function precheck_package(pkg_loc::String; pre_manifest::Union{Nothing,DataFrame
     @info "Look for PII in data and code files"
 
     # don't filter stuff in hidden __MACOSX
-    data_matches = scan_data_files(filter(x -> !contains(x, "__MACOSX"), datafiles))
-    code_matches = scan_code_files(filter(x -> !contains(x, "__MACOSX"), codefiles))
+    if !isnothing(no_code_scan)
+        @info "not scanning code files with $no_code_scan in path"
+    end
+    if !isnothing(no_data_scan)
+        @info "not scanning data files with $no_data_scan in path"
+    end
+    data_matches = scan_data_files(filter(x -> !any(contains.(x, no_data_scan)), datafiles))
+    code_matches = scan_code_files(filter(x -> !any(contains.(x, no_code_scan)), codefiles))
     write_pii_report(data_matches, code_matches, out, splitat = dirname(pkg_loc))
 
     # Parse README
