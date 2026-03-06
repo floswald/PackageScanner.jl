@@ -2,7 +2,7 @@
 # Main orchestration function for package analysis
 
 """
-    precheck_package(pkg_loc::String)
+    precheck_package(pkg_loc::String; pre_manifest=nothing)
 
 Comprehensive check of a replication package in directory `pkg_loc`.
 
@@ -24,6 +24,7 @@ In this example, `pkg_loc = abspath(replication-package)`:
 
 # Arguments
 - `pkg_loc`: Path to the replication package directory
+- `pre_manifest`: Optional DataFrame containing pre-generated manifest (for selective extraction)
 
 # Performs
 1. File classification (code/data/docs)
@@ -34,8 +35,18 @@ In this example, `pkg_loc = abspath(replication-package)`:
 6. README analysis
 
 All reports are written to `generated/` folder at the package root.
+
+# Examples
+```julia
+# Regular workflow (extract and check everything)
+precheck_package("replication-package")
+
+# Large package workflow (selective extraction)
+pkg_dir, manifest = prepare_package_for_precheck("large.zip")
+precheck_package(pkg_dir, pre_manifest=manifest)
+```
 """
-function precheck_package(pkg_loc::String)
+function precheck_package(pkg_loc::String; pre_manifest::Union{Nothing,DataFrame}=nothing)
 
     pkg_root = joinpath(pkg_loc, "..")
     @info "Starting precheck of package $(basename(pkg_root))"
@@ -43,15 +54,21 @@ function precheck_package(pkg_loc::String)
     out = joinpath(pkg_root, "generated")
     mkpath(out)
 
+    # If selective extraction was used, write extraction summary
+    if !isnothing(pre_manifest)
+        @info "Package was selectively extracted - generating extraction summary"
+        write_extraction_summary(pre_manifest, out)
+    end
+
     # Make package manifest table
     @info "Generate package manifest: all files, sizes, md5 hash"
-    generate_file_sizes_md5(pkg_loc, out)
+    generate_file_sizes_md5(pkg_loc, out, pre_manifest=pre_manifest)
 
     # Classify all files
     @info "Classify each file as code/data/docs"
-    codefiles = classify_files(pkg_loc, "code", out)
-    datafiles = classify_files(pkg_loc, "data", out)
-    docsfiles = classify_files(pkg_loc, "docs", out)
+    codefiles = classify_files(pkg_loc, "code", out, pre_manifest=pre_manifest)
+    datafiles = classify_files(pkg_loc, "data", out, pre_manifest=pre_manifest)
+    docsfiles = classify_files(pkg_loc, "docs", out, pre_manifest=pre_manifest)
 
     # Run cloc to get line counts
     @info "Running cloc for code statistics"

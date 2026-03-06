@@ -8,6 +8,7 @@ using CSV
 using DataFrames
 using MAT
 using Pickle
+using ZipFile
 
 # Additional dependencies from JPEtools
 using Glob

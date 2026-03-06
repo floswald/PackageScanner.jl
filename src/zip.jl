@@ -77,3 +77,311 @@ function mycp(src::AbstractString, dst::AbstractString; recursive::Bool = false,
     cmd = `$cmd $recursive_option`
     run(`$cmd $src $dst`)
 end
+
+
+"""
+    create_manifest_from_zip(zip_path::String; size_threshold_gb=nothing, interactive=true)
+
+Create a complete manifest of all files in a zip archive and extract only files below size threshold.
+
+# Arguments
+- `zip_path::String`: Path to zip file
+- `size_threshold_gb::Union{Nothing,Float64}`: Size threshold in GB (default: prompt user or 2.0)
+- `interactive::Bool`: Whether to prompt user for threshold (default: true)
+
+# Returns
+- `Tuple{DataFrame, String}`: (manifest, extraction_directory)
+"""
+function create_manifest_from_zip(zip_path::String; 
+                                  size_threshold_gb::Union{Nothing,Float64}=nothing,
+                                  interactive::Bool=true)
+    
+    @info "Reading zip file metadata: $zip_path"
+    reader = ZipFile.Reader(zip_path)
+    
+    # Calculate total size
+    total_size_gb = sum(f.uncompressedsize for f in reader.files if !endswith(f.name, "/")) / 1e9
+    
+    # Interactive prompt (if enabled)
+    if interactive
+        println("\n" * "="^60)
+        println("LARGE PACKAGE DETECTED")
+        println("="^60)
+        println("Full size of zip: $(round(total_size_gb, digits=2)) GB")
+        
+        if isnothing(size_threshold_gb)
+            println("\nDefault: extract all files smaller than 2.0 GB")
+            print("OK? (y/n): ")
+            flush(stdout)
+            response = readline()
+            
+            if lowercase(strip(response)) == "n"
+                print("Enter size threshold in GB: ")
+                flush(stdout)
+                size_threshold_gb = parse(Float64, readline())
+                println("Using threshold: $(size_threshold_gb) GB")
+            else
+                size_threshold_gb = 2.0
+                println("Using default threshold: 2.0 GB")
+            end
+        else
+            println("Using threshold: $(size_threshold_gb) GB")
+        end
+        println("="^60 * "\n")
+    else
+        size_threshold_gb = isnothing(size_threshold_gb) ? 2.0 : size_threshold_gb
+        @info "Using size threshold: $(size_threshold_gb) GB"
+    end
+    
+    size_threshold_bytes = size_threshold_gb * 1e9
+    
+    # Create full manifest DataFrame
+    manifest = DataFrame(
+        filepath = String[],
+        size_bytes = Int64[],
+        size_gb = Float64[],
+        compressed_size = Int64[],
+        crc32 = String[],
+        extracted = Bool[],
+        checked = Bool[]
+    )
+    
+    # Track files to extract
+    to_extract_names = String[]
+    n_extracted = 0
+    n_skipped = 0
+    
+    # Process each file in zip
+    for zf in reader.files
+        # Skip directories
+        if endswith(zf.name, "/")
+            continue
+        end
+        
+        size_gb = zf.uncompressedsize / 1e9
+        should_extract = zf.uncompressedsize <= size_threshold_bytes
+        
+        push!(manifest, (
+            filepath = zf.name,
+            size_bytes = zf.uncompressedsize,
+            size_gb = size_gb,
+            compressed_size = zf.compressedsize,
+            crc32 = string(zf.crc32, base=16, pad=8),
+            extracted = should_extract,
+            checked = false  # Will be updated during precheck
+        ))
+        
+        if should_extract
+            push!(to_extract_names, zf.name)
+            n_extracted += 1
+        else
+            n_skipped += 1
+        end
+    end
+    
+    close(reader)
+    
+    @info "Manifest created: $(nrow(manifest)) files total"
+    @info "  - Will extract: $n_extracted files"
+    @info "  - Will skip: $n_skipped files (too large)"
+    
+    # Extract selected files
+    extract_dir = joinpath(dirname(zip_path), "replication-package")
+    
+    if !isempty(to_extract_names)
+        println("\nExtracting $(length(to_extract_names)) files...")
+        
+        # Use ZipFile.jl for programmatic extraction (more reliable than shell commands)
+        reader = ZipFile.Reader(zip_path)
+        try
+            for fname in to_extract_names
+                # Find file in zip
+                zf_idx = findfirst(f -> f.name == fname, reader.files)
+                if !isnothing(zf_idx)
+                    file_in_zip = reader.files[zf_idx]
+                    output_path = joinpath(extract_dir, fname)
+                    
+                    # Create parent directories
+                    mkpath(dirname(output_path))
+                    
+                    # Extract file content
+                    open(output_path, "w") do outfile
+                        write(outfile, read(file_in_zip))
+                    end
+                end
+            end
+            @info "Extraction complete"
+        catch e
+            @error "Extraction failed: $e"
+            rethrow(e)
+        finally
+            close(reader)
+        end
+        
+        # Remove any .git directories
+        if isdir(extract_dir)
+            rm_git(extract_dir)
+        end
+    else
+        @warn "No files to extract (all files exceed size threshold)"
+    end
+    
+    return (manifest, extract_dir)
+end
+
+"""
+    create_manifest_from_directory(dir_path::String; size_threshold_gb=nothing, interactive=true)
+
+Create a complete manifest of all files in a directory and mark which should be checked based on size.
+
+# Arguments
+- `dir_path::String`: Path to directory
+- `size_threshold_gb::Union{Nothing,Float64}`: Size threshold in GB (default: prompt user or 2.0)
+- `interactive::Bool`: Whether to prompt user for threshold (default: true)
+
+# Returns
+- `DataFrame`: Manifest with all files and check status
+"""
+function create_manifest_from_directory(dir_path::String;
+                                       size_threshold_gb::Union{Nothing,Float64}=nothing,
+                                       interactive::Bool=true)
+    
+    @info "Scanning directory: $dir_path"
+    
+    # Build initial manifest
+    manifest = DataFrame(
+        filepath = String[],
+        size_bytes = Int64[],
+        size_gb = Float64[],
+        checksum = String[],
+        extracted = Bool[],
+        checked = Bool[]
+    )
+    
+    total_size_gb = 0.0
+    file_count = 0
+    
+    for (root, dirs, files) in walkdir(dir_path)
+        for file in files
+            full_path = joinpath(root, file)
+            size = filesize(full_path)
+            size_gb = size / 1e9
+            total_size_gb += size_gb
+            file_count += 1
+            
+            # Calculate checksum for existing files
+            checksum = open(full_path, "r") do fio
+                bytes2hex(sha1(fio))
+            end
+            
+            push!(manifest, (
+                filepath = relpath(full_path, dir_path),
+                size_bytes = size,
+                size_gb = size_gb,
+                checksum = checksum,
+                extracted = true,  # Already extracted (it's a directory)
+                checked = false    # Will be set after applying filter
+            ))
+        end
+    end
+    
+    @info "Found $file_count files totaling $(round(total_size_gb, digits=2)) GB"
+    
+    # Interactive prompt for filtering
+    if interactive
+        println("\n" * "="^60)
+        println("LARGE PACKAGE DETECTED")
+        println("="^60)
+        println("Package size: $(round(total_size_gb, digits=2)) GB")
+        println("($(file_count) files)")
+        
+        if isnothing(size_threshold_gb)
+            println("\nDefault: check only files smaller than 2.0 GB")
+            println("(Larger files will be catalogued but not scanned)")
+            print("OK? (y/n): ")
+            flush(stdout)
+            response = readline()
+            
+            if lowercase(strip(response)) == "n"
+                print("Enter size threshold in GB: ")
+                flush(stdout)
+                size_threshold_gb = parse(Float64, readline())
+                println("Using threshold: $(size_threshold_gb) GB")
+            else
+                size_threshold_gb = 2.0
+                println("Using default threshold: 2.0 GB")
+            end
+        else
+            println("Using threshold: $(size_threshold_gb) GB")
+        end
+        println("="^60 * "\n")
+    else
+        size_threshold_gb = isnothing(size_threshold_gb) ? 2.0 : size_threshold_gb
+        @info "Using size threshold: $(size_threshold_gb) GB"
+    end
+    
+    # Apply size filter
+    size_threshold_bytes = size_threshold_gb * 1e9
+    manifest.checked = manifest.size_bytes .<= size_threshold_bytes
+    
+    n_to_check = sum(manifest.checked)
+    n_skip = file_count - n_to_check
+    
+    @info "Filtering applied:"
+    @info "  - Will check: $n_to_check files"
+    @info "  - Will skip: $n_skip files (too large)"
+    
+    return manifest
+end
+
+"""
+    prepare_package_for_precheck(input_path::String; kwargs...)
+
+Unified function that handles both zip files and directories.
+Creates manifest and applies size filtering in both cases.
+
+# Arguments
+- `input_path::String`: Path to zip file or directory
+- `size_threshold_gb::Union{Nothing,Float64}`: Size threshold in GB (default: prompt or 2.0)
+- `interactive::Bool`: Whether to prompt user (default: true)
+
+# Returns
+- `Tuple{String, DataFrame}`: (package_directory, manifest)
+
+# Examples
+```julia
+# Zip file with interactive prompt
+pkg_dir, manifest = prepare_package_for_precheck("large.zip")
+
+# Directory with fixed threshold
+pkg_dir, manifest = prepare_package_for_precheck("/path/to/pkg", 
+                                                  size_threshold_gb=1.5, 
+                                                  interactive=false)
+```
+"""
+function prepare_package_for_precheck(input_path::String; 
+                                     size_threshold_gb::Union{Nothing,Float64}=nothing,
+                                     interactive::Bool=true)
+    
+    if isfile(input_path) && endswith(lowercase(input_path), ".zip")
+        @info "Input is a zip file"
+        manifest, extract_dir = create_manifest_from_zip(
+            input_path, 
+            size_threshold_gb=size_threshold_gb,
+            interactive=interactive
+        )
+        return (extract_dir, manifest)
+        
+    elseif isdir(input_path)
+        @info "Input is a directory"
+        manifest = create_manifest_from_directory(
+            input_path,
+            size_threshold_gb=size_threshold_gb,
+            interactive=interactive
+        )
+        return (input_path, manifest)
+        
+    else
+        error("Input must be a .zip file or existing directory: $input_path")
+    end
+end

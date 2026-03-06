@@ -26,6 +26,7 @@ Comprehensive tools for analyzing research replication packages:
 - **README analysis**: Parses README files (MD/PDF) for key information
 - **Code statistics**: Integration with `cloc` for line counting
 - **Report generation**: Creates markdown reports for all analyses
+- **Large package support**: Selective extraction for very large packages (see [below](#handling-large-packages))
 
 ## Installation
 
@@ -121,6 +122,40 @@ metadata = PackageScanner.generate_file_sizes_md5("/path/to/package", "output/")
 # Check code files for problematic file paths
 PackageScanner.file_paths(code_files, "output/")
 ```
+
+## Handling Large Packages
+
+PackageScanner supports **selective extraction** for very large packages. This allows you to maintain a complete file manifest while only extracting and checking files below a size threshold.
+
+```julia
+using PackageScanner
+
+# Interactive mode (prompts for threshold, default 2GB)
+pkg_dir, manifest = PackageScanner.prepare_package_for_precheck("large_package.zip")
+PackageScanner.precheck_package(pkg_dir, pre_manifest=manifest)
+
+# Non-interactive with custom threshold
+pkg_dir, manifest = PackageScanner.prepare_package_for_precheck(
+    "large_package.zip",
+    size_threshold_gb=5.0,
+    interactive=false
+)
+PackageScanner.precheck_package(pkg_dir, pre_manifest=manifest)
+```
+
+**Key features:**
+- Inspects zip files without extracting to get complete inventory
+- Interactive prompt for size threshold (default: 2GB per file)
+- Extracts only files below threshold
+- Maintains complete manifest showing ALL files
+- Reports clearly indicate which files were checked vs. catalogued only
+- Works with both zip files and already-extracted directories
+
+**Generated reports include:**
+- `report-extraction-summary.md` - Shows what was extracted/skipped and why
+- All standard reports with extraction status indicators (✓ checked, ⊘ not extracted)
+
+See [docs/large_packages.md](docs/large_packages.md) for detailed documentation.
 
 ## Default PII Terms
 
