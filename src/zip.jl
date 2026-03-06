@@ -143,7 +143,8 @@ function create_manifest_from_zip(zip_path::String;
         compressed_size = Int64[],
         crc32 = String[],
         extracted = Bool[],
-        checked = Bool[]
+        checked = Bool[],
+        is_valid_file = Union{Bool, Missing}[]
     )
     
     # Track files to extract
@@ -168,7 +169,8 @@ function create_manifest_from_zip(zip_path::String;
             compressed_size = zf.compressedsize,
             crc32 = string(zf.crc32, base=16, pad=8),
             extracted = should_extract,
-            checked = false  # Will be updated during precheck
+            checked = false,  # Will be updated during precheck
+            is_valid_file = missing  # Will be validated after extraction
         ))
         
         if should_extract
@@ -222,8 +224,20 @@ function create_manifest_from_zip(zip_path::String;
         if isdir(extract_dir)
             rm_git(extract_dir)
         end
+        
+        # Validate extracted files
+        for i in 1:nrow(manifest)
+            if manifest[i, :extracted]
+                full_path = joinpath(extract_dir, manifest[i, :filepath])
+                manifest[i, :is_valid_file] = isfile(full_path)
+            else
+                manifest[i, :is_valid_file] = missing  # Not extracted, unknown validity
+            end
+        end
     else
         @warn "No files to extract (all files exceed size threshold)"
+        # Mark all as not extracted and unknown validity
+        manifest[!, :is_valid_file] .= missing
     end
     
     return (manifest, extract_dir)
@@ -255,7 +269,8 @@ function create_manifest_from_directory(dir_path::String;
         size_gb = Float64[],
         checksum = String[],
         extracted = Bool[],
-        checked = Bool[]
+        checked = Bool[],
+        is_valid_file = Bool[]
     )
     
     total_size_gb = 0.0
@@ -264,15 +279,27 @@ function create_manifest_from_directory(dir_path::String;
     for (root, dirs, files) in walkdir(dir_path)
         for file in files
             full_path = joinpath(root, file)
-            size = filesize(full_path)
-            size_gb = size / 1e9
-            total_size_gb += size_gb
-            file_count += 1
             
-            # Calculate checksum for existing files
-            checksum = open(full_path, "r") do fio
-                bytes2hex(sha1(fio))
+            # Check if it's a valid regular file (not a broken symlink or special file)
+            is_valid = isfile(full_path)
+            
+            if is_valid
+                size = filesize(full_path)
+                size_gb = size / 1e9
+                total_size_gb += size_gb
+                
+                # Calculate checksum for valid files
+                checksum = open(full_path, "r") do fio
+                    bytes2hex(sha1(fio))
+                end
+            else
+                # Invalid file - record but with placeholder values
+                size = 0
+                size_gb = 0.0
+                checksum = "INVALID_FILE"
             end
+            
+            file_count += 1
             
             push!(manifest, (
                 filepath = relpath(full_path, dir_path),
@@ -280,7 +307,8 @@ function create_manifest_from_directory(dir_path::String;
                 size_gb = size_gb,
                 checksum = checksum,
                 extracted = true,  # Already extracted (it's a directory)
-                checked = false    # Will be set after applying filter
+                checked = false,   # Will be set after applying filter
+                is_valid_file = is_valid
             ))
         end
     end

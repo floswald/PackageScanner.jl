@@ -40,7 +40,7 @@ function generate_file_sizes_md5(folder_path::String, output_path::String;
             if table[i, :extracted]
                 file_path = joinpath(folder_path, table[i, :name])
                 if isfile(file_path)
-                    table[i, :checksum] = open(file_path, "r") do fio
+                    table[i, :checksum] = isfile(file_path) && open(file_path, "r") do fio
                         bytes2hex(sha1(fio))
                     end
                 end
@@ -55,7 +55,7 @@ function generate_file_sizes_md5(folder_path::String, output_path::String;
                 short_path = path_splitter(file_path, basename(folder_path))
                 file_size = filesize(file_path)
                 size_mb = file_size / 1024^2  # Convert bytes to megabytes
-                md5_checksum = open(file_path, "r") do fio
+                md5_checksum = isfile(file_path) && open(file_path, "r") do fio
                     bytes2hex(sha1(fio))
                 end
                 push!(table, (
@@ -216,4 +216,53 @@ function write_extraction_summary(manifest::DataFrame, output_path::String)
     end
     
     @info "Extraction summary written to $(joinpath(output_path, "report-extraction-summary.md"))"
+end
+
+"""
+    write_illegal_files_report(manifest::DataFrame, output_path::String)
+
+Generate a report of files that are not valid regular files (broken symlinks, special files, etc.)
+
+# Arguments
+- `manifest::DataFrame`: Manifest with is_valid_file column
+- `output_path::String`: Directory to write report to
+"""
+function write_illegal_files_report(manifest::DataFrame, output_path::String)
+    if !("is_valid_file" in names(manifest))
+        @warn "Manifest missing is_valid_file column, skipping illegal files report"
+        return
+    end
+    
+    open(joinpath(output_path, "report-illegal-files.md"), "w") do io
+        println(io, "## Invalid/Illegal Files Report\n")
+        
+        # Count invalid files (excluding missing values)
+        invalid_files = manifest[coalesce.(manifest.is_valid_file, true) .== false, :]
+        n_invalid = nrow(invalid_files)
+        
+        if n_invalid == 0
+            println(io, "✅ **All files are valid regular files.**\n")
+            println(io, "No broken symlinks or special files detected.")
+        else
+            println(io, "⚠️ **Found $n_invalid invalid file(s)**\n")
+            println(io, "The following files exist in the package manifest but cannot be read as regular files.")
+            println(io, "This typically indicates:")
+            println(io, "- Broken symbolic links")
+            println(io, "- Special device files")
+            println(io, "- Files with permission issues\n")
+            
+            println(io, "| File Path | Size (bytes) | Extracted |")
+            println(io, "|:----------|-------------:|:----------|")
+            
+            for row in eachrow(invalid_files)
+                extracted_status = get(row, :extracted, missing)
+                extracted_str = ismissing(extracted_status) ? "N/A" : (extracted_status ? "Yes" : "No")
+                println(io, "| $(row.filepath) | $(row.size_bytes) | $extracted_str |")
+            end
+            
+            println(io, "\n**Recommendation:** These files should be removed or fixed in your replication package.")
+        end
+    end
+    
+    @info "Illegal files report written to $(joinpath(output_path, "report-illegal-files.md"))"
 end

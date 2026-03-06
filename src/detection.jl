@@ -176,6 +176,12 @@ function scan_code_file(filepath::String;
     matches = PIIMatch[]
     search_terms = isempty(custom_terms) ? DEFAULT_PII_TERMS : [DEFAULT_PII_TERMS..., custom_terms...]
     
+    # Check if file is valid before attempting to open
+    if !isfile(filepath)
+        @warn "Skipping $filepath: not a valid file (broken symlink or special file)"
+        return matches
+    end
+    
     try
         open(filepath, "r") do io
             for (i, line) in enumerate(eachline(io))

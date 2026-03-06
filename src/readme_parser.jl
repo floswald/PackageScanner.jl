@@ -69,6 +69,15 @@ function read_README(pkg_loc, fp::String)
         else
             # Take first match
             d = first(d0[is_readmes])
+            
+            # Check if file is accessible
+            if !isfile(d)
+                println(io, "🚨 **README file not accessible!** 🚨")
+                println(io, "The README file listed at `$d` cannot be read (broken symlink or special file).")
+                println(io, "**Please fix.**")
+                return 1
+            end
+            
             println(io, """
             👉 We are considering the file at 
 
@@ -95,7 +104,7 @@ function read_README(pkg_loc, fp::String)
 
             """)
 
-            if contains(d, r".md"i) 
+            if contains(d, r".md"i)
                 open(d, "r") do jo 
                     for s in searches
                         for (i, line) in enumerate(eachline(jo))

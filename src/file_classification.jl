@@ -103,7 +103,8 @@ function classify_files(pkg_path::String, kind::String, fp::String;
             filepath = String[],
             extracted = Bool[],
             checked = Bool[],
-            size_gb = Float64[]
+            size_gb = Float64[],
+            is_valid_file = Union{Bool, Missing}[]
         )
     else
         nothing
@@ -121,11 +122,21 @@ function classify_files(pkg_path::String, kind::String, fp::String;
                     
                     # Add to manifest
                     if !isnothing(files_manifest)
+                        # Get is_valid_file from pre_manifest if available
+                        valid_status = true  # Assume valid if we found it on disk
+                        if "is_valid_file" in names(pre_manifest)
+                            pre_row = findfirst(row -> row.filepath == ss || endswith(ss, row.filepath), eachrow(pre_manifest))
+                            if !isnothing(pre_row)
+                                valid_status = coalesce(pre_manifest[pre_row, :is_valid_file], true)
+                            end
+                        end
+                        
                         push!(files_manifest, (
                             filepath = ss,
                             extracted = true,
                             checked = true,
-                            size_gb = filesize(ss) / 1e9
+                            size_gb = filesize(ss) / 1e9,
+                            is_valid_file = valid_status
                         ))
                     end
                 end
@@ -140,11 +151,21 @@ function classify_files(pkg_path::String, kind::String, fp::String;
                     push!(files, ss)
                     
                     if !isnothing(files_manifest)
+                        # Get is_valid_file from pre_manifest if available
+                        valid_status = true
+                        if "is_valid_file" in names(pre_manifest)
+                            pre_row = findfirst(row -> row.filepath == ss || endswith(ss, row.filepath), eachrow(pre_manifest))
+                            if !isnothing(pre_row)
+                                valid_status = coalesce(pre_manifest[pre_row, :is_valid_file], true)
+                            end
+                        end
+                        
                         push!(files_manifest, (
                             filepath = ss,
                             extracted = true,
                             checked = true,
-                            size_gb = filesize(ss) / 1e9
+                            size_gb = filesize(ss) / 1e9,
+                            is_valid_file = valid_status
                         ))
                     end
                 end
@@ -159,11 +180,21 @@ function classify_files(pkg_path::String, kind::String, fp::String;
                     push!(files, ss)
                     
                     if !isnothing(files_manifest)
+                        # Get is_valid_file from pre_manifest if available
+                        valid_status = true
+                        if "is_valid_file" in names(pre_manifest)
+                            pre_row = findfirst(row -> row.filepath == ss || endswith(ss, row.filepath), eachrow(pre_manifest))
+                            if !isnothing(pre_row)
+                                valid_status = coalesce(pre_manifest[pre_row, :is_valid_file], true)
+                            end
+                        end
+                        
                         push!(files_manifest, (
                             filepath = ss,
                             extracted = true,
                             checked = true,
-                            size_gb = filesize(ss) / 1e9
+                            size_gb = filesize(ss) / 1e9,
+                            is_valid_file = valid_status
                         ))
                     end
                 end
@@ -188,11 +219,15 @@ function classify_files(pkg_path::String, kind::String, fp::String;
             end
             
             if is_match
+                # Get is_valid_file from pre_manifest if available
+                valid_status = get(row, :is_valid_file, missing)
+                
                 push!(files_manifest, (
                     filepath = filepath,
                     extracted = false,
                     checked = false,
-                    size_gb = row.size_gb
+                    size_gb = row.size_gb,
+                    is_valid_file = valid_status
                 ))
             end
         end

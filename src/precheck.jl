@@ -67,6 +67,12 @@ function precheck_package(pkg_loc::String;
     # Make package manifest table
     @info "Generate package manifest: all files, sizes, md5 hash"
     generate_file_sizes_md5(pkg_loc, out, pre_manifest=pre_manifest)
+    
+    # Report invalid/illegal files if manifest has validity information
+    if !isnothing(pre_manifest) && "is_valid_file" in names(pre_manifest)
+        @info "Generating invalid files report"
+        write_illegal_files_report(pre_manifest, out)
+    end
 
     # Classify all files
     @info "Classify each file as code/data/docs"

@@ -61,6 +61,12 @@ function check_file_paths(filepath)
     has_unix = false
     has_drive = false
 
+    # Check if file is valid before attempting to open
+    if !isfile(filepath)
+        push!(lines, "⚠️ File not accessible (broken symlink or special file)")
+        return (lines, "none", false, hardcodes)
+    end
+
     try
         open(filepath, "r") do io
             for (i, line) in enumerate(eachline(io))
