@@ -93,7 +93,7 @@ Create a complete manifest of all files in a zip archive and extract only files 
 - `Tuple{DataFrame, String}`: (manifest, extraction_directory)
 """
 function create_manifest_from_zip(zip_path::String; 
-                                  size_threshold_gb::Union{Nothing,Float64}=nothing,
+                                  size_threshold_gb::Union{Nothing,Number}=nothing,
                                   interactive::Bool=true)
     
     @info "Reading zip file metadata: $zip_path"
@@ -257,7 +257,7 @@ Create a complete manifest of all files in a directory and mark which should be 
 - `DataFrame`: Manifest with all files and check status
 """
 function create_manifest_from_directory(dir_path::String;
-                                       size_threshold_gb::Union{Nothing,Float64}=nothing,
+                                       size_threshold_gb::Union{Nothing,Number}=nothing,
                                        interactive::Bool=true)
     
     @info "Scanning directory: $dir_path"
@@ -388,7 +388,7 @@ pkg_dir, manifest = prepare_package_for_precheck("/path/to/pkg",
 ```
 """
 function prepare_package_for_precheck(input_path::String; 
-                                     size_threshold_gb::Union{Nothing,Float64}=nothing,
+                                     size_threshold_gb::Union{Nothing,Number}=nothing,
                                      interactive::Bool=true)
     
     if isfile(input_path) && endswith(lowercase(input_path), ".zip")
