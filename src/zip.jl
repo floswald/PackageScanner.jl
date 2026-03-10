@@ -247,6 +247,7 @@ end
     create_manifest_from_directory(dir_path::String; size_threshold_gb=nothing, interactive=true)
 
 Create a complete manifest of all files in a directory and mark which should be checked based on size.
+First unzips any nested .zip files found in the directory to ensure complete content scanning.
 
 # Arguments
 - `dir_path::String`: Path to directory
@@ -261,6 +262,41 @@ function create_manifest_from_directory(dir_path::String;
                                        interactive::Bool=true)
     
     @info "Scanning directory: $dir_path"
+    
+    # First pass: Find and unzip any nested .zip files
+    zip_files_found = String[]
+    for (root, dirs, files) in walkdir(dir_path)
+        for file in files
+            if endswith(lowercase(file), ".zip")
+                zip_path = joinpath(root, file)
+                push!(zip_files_found, zip_path)
+            end
+        end
+    end
+    
+    # Unzip all found zip files
+    if !isempty(zip_files_found)
+        @info "Found $(length(zip_files_found)) nested zip file(s) - extracting..."
+        for zip_file in zip_files_found
+            @info "  Unzipping: $(relpath(zip_file, dir_path))"
+            extract_to = dirname(zip_file)
+            
+            try
+                # Use system unzip command for reliability
+                run(pipeline(`unzip -oq $zip_file -d $extract_to`, devnull))
+                
+                # Remove .git directories from extracted content
+                rm_git(extract_to)
+                
+                # Remove the zip file after successful extraction
+                rm(zip_file, force=true)
+                @info "    Extracted and removed zip file"
+            catch e
+                @warn "Failed to unzip $zip_file: $e"
+            end
+        end
+        @info "Nested zip extraction complete"
+    end
     
     # Build initial manifest
     manifest = DataFrame(
