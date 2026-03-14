@@ -105,6 +105,15 @@ function precheck_package(pkg_loc::String;
     @info "Parse code files and search for filepaths"
     file_paths(codefiles, out)
 
+    # Scan for code quality / reproducibility issues
+    @info "Scan code files for quality and reproducibility issues"
+    cq_config = joinpath(pkgdir(PackageScanner), "config", "code_quality_patterns.toml")
+    cq_findings = scan_code_quality(
+        filter(x -> !any(contains.(x, no_code_scan)), codefiles),
+        cq_config
+    )
+    write_code_quality_report(cq_findings, out)
+
     # Look for PII
     @info "Look for PII in data and code files"
 

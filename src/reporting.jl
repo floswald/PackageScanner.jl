@@ -317,6 +317,61 @@ function write_pii_report_simple(data_results::Vector{PIIMatch},
     println("✓ PII report written: $(joinpath(fp, "report-pii.md"))")
 end
 
+"""
+    write_code_quality_report(findings::Vector{CodeQualityFinding}, output_dir::String;
+                               report_file::String="report-code-quality.md")
+
+Write a `## Code Quality` section to `report_file` inside `output_dir`.
+Findings are grouped by language, then by risk level (`:critical` first).
+"""
+function write_code_quality_report(findings::Vector{CodeQualityFinding},
+                                    output_dir::String;
+                                    report_file::String="report-code-quality.md")
+    open(joinpath(output_dir, report_file), "w") do io
+        println(io, "## Code Quality\n")
+
+        if isempty(findings)
+            println(io, "✅ No code quality issues detected.")
+            return
+        end
+
+        # Group by language
+        by_lang = Dict{String,Vector{CodeQualityFinding}}()
+        for f in findings
+            push!(get!(by_lang, f.language, CodeQualityFinding[]), f)
+        end
+
+        for lang in sort(collect(keys(by_lang)))
+            lang_findings = by_lang[lang]
+            println(io, "### $(uppercasefirst(lang))\n")
+
+            # Critical first, then advisory
+            for level in (:critical, :advisory)
+                level_findings = filter(f -> f.risk_level == level, lang_findings)
+                isempty(level_findings) && continue
+                tag = level == :critical ? "[CRITICAL]" : "[ADVISORY]"
+                for f in level_findings
+                    loc = if isnothing(f.line_number) || isempty(f.filepath)
+                        ""
+                    else
+                        " ($(basename(f.filepath)), line $(f.line_number))"
+                    end
+                    println(io, "$tag $(f.message)$loc")
+                    if !isempty(f.context)
+                        println(io, "  → $(f.context)")
+                    end
+                    println(io)
+                end
+            end
+        end
+    end
+
+    n_crit = count(f -> f.risk_level == :critical, findings)
+    n_adv  = count(f -> f.risk_level == :advisory, findings)
+    println("✓ Code quality report written: $(joinpath(output_dir, report_file))")
+    println("  Critical: $n_crit  Advisory: $n_adv")
+end
+
 function full_example()
     tmpdir = mktempdir()
     
