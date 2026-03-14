@@ -1,0 +1,100 @@
+# Code Quality Pattern Definitions
+# Each rule has: pattern(s), risk level, and human-readable message.
+# Risk levels: "critical" or "advisory"
+
+# ---------------------------------------------------------------------------
+# Rule 1: Missing random seed
+# Two-pass check: if any trigger is found across the package files of a given
+# language, check for the presence of a seed call. Flag if absent.
+# ---------------------------------------------------------------------------
+
+[stata.seed_triggers]
+patterns = ["bootstrap", "bsample", "simulate", "drawnorm", "permute", "randorder"]
+
+[stata.seed_calls]
+patterns = ["set seed"]
+
+[r.seed_triggers]
+patterns = ["rnorm\\(", "runif\\(", "rbinom\\(", "sample\\(", "replicate\\(", "boot\\(", "_cv\\(", "trainControl\\("]
+
+[r.seed_calls]
+patterns = ["set\\.seed\\("]
+
+[python.seed_triggers]
+patterns = ["np\\.random", "random\\.", "sklearn", "train_test_split\\(", "shuffle\\("]
+
+[python.seed_calls]
+patterns = ["random\\.seed\\(", "np\\.random\\.seed\\(", "random_state\\s*=", "torch\\.manual_seed\\(", "tf\\.random\\.set_seed\\("]
+
+[julia.seed_triggers]
+patterns = ["\\brand\\(", "\\brandn\\(", "\\bshuffle\\(", "\\bsample\\("]
+
+[julia.seed_calls]
+patterns = ["Random\\.seed!", "\\bseed!\\("]
+
+# ---------------------------------------------------------------------------
+# Rule 2: Hardcoded absolute paths
+# Single-pass, line-level, all languages.
+# ---------------------------------------------------------------------------
+
+[all.absolute_paths]
+risk = "critical"
+message = "Hardcoded absolute path detected — the package will not run on another machine."
+patterns = [
+    "[\"']/Users/",
+    "[\"']C:\\\\\\\\",
+    "[\"']/home/",
+    "[\"']C:/",
+    "Path\\([\"']/Users/",
+    "Path\\([\"']/home/",
+    "Path\\([\"']C:"
+]
+
+# ---------------------------------------------------------------------------
+# Rule 3: merge m:m (Stata only)
+# Single-pass, line-level.
+# ---------------------------------------------------------------------------
+
+[stata.merge_mm]
+risk = "critical"
+message = "`merge m:m` uses positional row-matching within key groups, not relational join semantics. Use `joinby` for a true many-to-many join, or identify the correct unique key and use `1:m`/`m:1`."
+pattern = "merge m:m"
+
+# ---------------------------------------------------------------------------
+# Rule 4: Undocumented sample drops
+# Flag drop/filter/query not preceded by a comment within 2 lines.
+# ---------------------------------------------------------------------------
+
+[stata.undocumented_drop]
+risk = "advisory"
+message = "Sample drop (`drop if` / `keep if`) not preceded by a comment within 2 lines — consider adding a comment explaining the criterion."
+patterns = ["^\\s*drop if ", "^\\s*keep if "]
+comment_pattern = "^\\s*\\*|^\\s*//"
+
+[r.undocumented_filter]
+risk = "advisory"
+message = "`filter(` call not preceded by a comment within 2 lines — consider adding a comment explaining the criterion."
+patterns = ["\\bfilter\\("]
+comment_pattern = "^\\s*#"
+
+[python.undocumented_drop]
+risk = "advisory"
+message = "`.query(` or `.loc[` call not preceded by a comment within 2 lines — consider adding a comment explaining the criterion."
+patterns = ["\\.query\\(", "\\.loc\\["]
+comment_pattern = "^\\s*#"
+
+# ---------------------------------------------------------------------------
+# Rule 5: Merge without explicit join type (R, Python)
+# ---------------------------------------------------------------------------
+
+[r.implicit_join]
+risk = "advisory"
+message = "`merge()` called without explicit `all=`, `all.x=`, or `all.y=` argument — defaults to inner join, which may silently drop rows."
+pattern = "\\bmerge\\("
+required_args = ["all\\s*=", "all\\.x\\s*=", "all\\.y\\s*="]
+
+[python.implicit_join]
+risk = "advisory"
+message = "`pd.merge()` or `.merge()` called without explicit `how=` argument — defaults to inner join, which may silently drop rows."
+patterns = ["pd\\.merge\\(", "\\.merge\\("]
+required_arg = "how\\s*="
