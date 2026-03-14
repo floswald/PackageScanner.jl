@@ -16,11 +16,13 @@ using PDFIO
 using Printf
 using SHA
 using TestItems
+using TOML
 
-# PII Scanning modules 
+# PII Scanning modules
 include("constants.jl")
 include("data-loading.jl")
 include("detection.jl")
+include("CodeQualityScanner.jl")
 include("reporting.jl")
 
 # Package Analysis modules
