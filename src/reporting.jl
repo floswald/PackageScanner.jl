@@ -1,17 +1,20 @@
 """
-    generate_summary_table(data_results::Vector{PIIMatch}, code_results::Vector{PIIMatch})
+    generate_summary_table(data_results::Vector{PIIMatch}, code_results::Vector{PIIMatch}; num_lines=20)
 
 Generate a markdown summary table of PII detections.
 
 # Arguments
 - `data_results::Vector{PIIMatch}`: Data file PII matches
 - `code_results::Vector{PIIMatch}`: Code file PII matches
+- `num_lines::Int=20`: Maximum number of data rows in the short table
 
 # Returns
-- `String`: Markdown formatted table
+- `Tuple{String,String}`: `(short_table, full_table)` where `short_table` contains
+  the first `num_lines` data rows plus headers, and `full_table` contains all rows.
 """
-function generate_summary_table(data_results::Vector{PIIMatch}, 
-                               code_results::Vector{PIIMatch})
+function generate_summary_table(data_results::Vector{PIIMatch},
+                               code_results::Vector{PIIMatch};
+                               num_lines::Int=20)
     # Group by file
     data_by_file = Dict{String, Vector{PIIMatch}}()
     for match in data_results
@@ -62,8 +65,12 @@ function generate_summary_table(data_results::Vector{PIIMatch},
         
         push!(lines, "| Code | `$fname` | $n_refs | $categories |")
     end
-    
-    return join(lines, "\n")
+
+    header_rows = lines[1:2]
+    data_rows   = lines[3:end]
+    short_table = join(vcat(header_rows, data_rows[1:min(num_lines, length(data_rows))]), "\n")
+    full_table  = join(lines, "\n")
+    return (short_table, full_table)
 end
 
 """
@@ -188,7 +195,13 @@ function write_pii_report(data_results::Vector{PIIMatch},
                          appendix_file::String="report-pii-appendix.md")
     
     has_pii = !isempty(data_results) || !isempty(code_results)
-    
+
+    short_table = ""
+    full_table  = ""
+    if has_pii
+        short_table, full_table = generate_summary_table(data_results, code_results)
+    end
+
     # Write main report with summary
     open(joinpath(output_dir, main_file), "w") do io
         println(io, "## Potential Personal Identifiable Information (PII)\n")
@@ -205,6 +218,7 @@ function write_pii_report(data_results::Vector{PIIMatch},
             n_code_refs = length(code_results)
             
             println(io, "**Summary:**")
+            println(io, "")
             println(io, "- Data files with PII indicators: $n_data_files")
             println(io, "- Variables flagged in data: $n_data_vars")
             println(io, "- Code files with PII references: $n_code_files")
@@ -212,8 +226,7 @@ function write_pii_report(data_results::Vector{PIIMatch},
             
             # Summary table
             println(io, "### Summary of Flagged Files\n")
-            table = generate_summary_table(data_results, code_results)
-            println(io, table)
+            println(io, short_table)
             println(io, "\n*See [Appendix]($appendix_file) for detailed listing of all flagged instances.*")
         end
     end
@@ -224,7 +237,11 @@ function write_pii_report(data_results::Vector{PIIMatch},
             println(io, "## Appendix: Detailed PII Detection Results\n")
             println(io, "*Generated on $(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))*\n")
             println(io, "This appendix lists all detected instances of potential personally identifiable information (PII) in the project files. Each entry shows the matched PII terms and, for data files, sample values to help verify whether the flagged content is indeed sensitive.\n")
-            
+
+            println(io, "### Full Summary Table\n")
+            println(io, full_table)
+            println(io, "")
+
             appendix = generate_detailed_appendix(data_results, code_results; splitat=splitat)
             println(io, appendix)
         end
