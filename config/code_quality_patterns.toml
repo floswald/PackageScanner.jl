@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------------------
 
 [stata.seed_triggers]
-patterns = ["bootstrap", "bsample", "simulate", "drawnorm", "permute", "randorder"]
+patterns = ["bootstrap", "bsample", "simulate", "drawnorm", "permute", "randorder","rwolf"]
 
 [stata.seed_calls]
 patterns = ["set seed"]
