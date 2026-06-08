@@ -42,7 +42,12 @@ function load_data_metadata(filepath::String, max_rows = 1000)
         data = matread(filepath)
         return extract_metadata(data)
     elseif (ext == ".pkl" || ext == ".pickle")
-        data = Pickle.load(filepath, proto = 5)
+        data = try
+            Pickle.load(filepath, proto = 5)
+        catch e
+            @warn "could not load pickle file $filepath: $e"
+            return nothing
+        end
         return extract_metadata(data)
     else
         # Use R only to read the data (no metadata extraction in R)
@@ -139,7 +144,7 @@ function extract_metadata(data; labels = nothing)
             "var_labels" => labels,
             "samples" => samples
         )
-    else
+    elseif data isa AbstractDataFrame
         # Handle DataFrame-like objects (original logic)
         var_names = names(data)
         
@@ -167,5 +172,8 @@ function extract_metadata(data; labels = nothing)
             "var_labels" => labels,
             "samples" => samples
         )
+    else
+        @warn "unsupported data type $(typeof(data)) for metadata extraction"
+        return nothing
     end
 end
