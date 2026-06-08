@@ -198,3 +198,40 @@ end
 
     @test Set(out["var_names"]) == Set(["mixed_types", "nested_dict", "arrays"])
 end
+
+@testitem "extract_metadata returns nothing for Vector{Any}" begin
+    # Vector{Any} is what Pickle returns for list-of-records; not a DataFrame or Dict
+    result = PackageScanner.extract_metadata(Any[1, 2, 3])
+    @test isnothing(result)
+end
+
+@testitem "load_data_metadata returns nothing for corrupt pickle" begin
+    tmpdir = mktempdir()
+    bad_pkl = joinpath(tmpdir, "corrupt.pkl")
+    write(bad_pkl, "not a pickle file")
+    result = PackageScanner.load_data_metadata(bad_pkl)
+    @test isnothing(result)
+end
+
+@testitem "scan_data_files skips unreadable files gracefully" begin
+    tmpdir = mktempdir()
+
+    # Good file with PII
+    good_file = joinpath(tmpdir, "survey.csv")
+    open(good_file, "w") do io
+        println(io, "name,age")
+        println(io, "Alice,30")
+    end
+
+    # Bad pickle that will fail to parse
+    bad_file = joinpath(tmpdir, "broken.pkl")
+    write(bad_file, "not a pickle")
+
+    matches = redirect_stdout(devnull) do
+        PackageScanner.scan_data_files([good_file, bad_file])
+    end
+
+    # Good file still scanned; bad file skipped without crash
+    @test any(m -> m.filepath == good_file, matches)
+    @test !any(m -> m.filepath == bad_file, matches)
+end

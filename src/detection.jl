@@ -240,8 +240,14 @@ function scan_data_files(data_files::Vector{String};
     for (idx, filepath) in enumerate(data_files)
         print("  [$idx/$(length(data_files))] $filepath ... ")
         
-        matches = scan_data_file(filepath; strict=strict, custom_terms=custom_terms)
-        
+        matches = try
+            scan_data_file(filepath; strict=strict, custom_terms=custom_terms)
+        catch e
+            @warn "scan_data_file failed for $filepath: $e"
+            println("✗ error (skipped)")
+            PIIMatch[]
+        end
+
         if isempty(matches)
             println("✓ clean")
         else
