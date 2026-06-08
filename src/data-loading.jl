@@ -42,7 +42,7 @@ function load_data_metadata(filepath::String, max_rows = 1000)
         data = matread(filepath)
         return extract_metadata(data)
     elseif (ext == ".pkl" || ext == ".pickle")
-        data = Pickle.load(filepath)
+        data = Pickle.load(filepath, proto = 5)
         return extract_metadata(data)
     else
         # Use R only to read the data (no metadata extraction in R)
