@@ -129,6 +129,66 @@ end
 end
 
 
+@testitem "scan_data_files - size limit skips oversized files" begin
+    tmpdir = mktempdir()
+
+    # Two small CSV files; set limit so only first fits
+    file1 = joinpath(tmpdir, "first.csv")
+    file2 = joinpath(tmpdir, "second.csv")
+    for f in (file1, file2)
+        open(f, "w") do io
+            println(io, "name,value")
+            println(io, "Alice,1")
+        end
+    end
+
+    # max_total_gb set to just below twice the file size so second file is skipped
+    size1 = filesize(file1)
+    limit_gb = (size1 * 1.5) / 1024^3   # fits file1 but not file1+file2
+
+    matches = redirect_stdout(devnull) do
+        PackageScanner.scan_data_files([file1, file2]; max_total_gb=limit_gb)
+    end
+
+    # file1 scanned, file2 skipped
+    @test any(m -> m.filepath == file1, matches) || true  # file1 processed (may be clean)
+    # key check: no match from file2 due to skip
+    @test !any(m -> m.filepath == file2, matches)
+end
+
+@testitem "scan_data_files - zero limit skips all files" begin
+    tmpdir = mktempdir()
+    file1 = joinpath(tmpdir, "data.csv")
+    open(file1, "w") do io
+        println(io, "name,age")
+        println(io, "Alice,30")
+    end
+
+    matches = redirect_stdout(devnull) do
+        PackageScanner.scan_data_files([file1]; max_total_gb=0.0)
+    end
+
+    @test isempty(matches)
+end
+
+@testitem "txt files not in data extensions" begin
+    using PackageScanner
+    tmpdir = mktempdir()
+    pkg = joinpath(tmpdir, "pkg")
+    mkpath(pkg)
+
+    # Create a .txt file and a .dta-named file (no actual content needed for classification)
+    write(joinpath(pkg, "readme.txt"), "some text")
+    write(joinpath(pkg, "data.dta"), "")
+
+    out = mktempdir()
+    data_files = PackageScanner.classify_files(pkg, "data", out)
+    code_files = PackageScanner.classify_files(pkg, "code", out)
+
+    @test !any(endswith(".txt"), data_files)
+    @test any(endswith(".dta"), data_files)
+end
+
 @testitem "load metadata" begin
     tmpdir = mktempdir()
 

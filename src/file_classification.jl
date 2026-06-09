@@ -62,7 +62,7 @@ function classify_files(pkg_path::String, kind::String, fp::String;
         sensitivenames = ["Makefile"]
 
     elseif kind == "data"
-        extensions = ["gpkg","dat","dta","rda","rds","rdata","ods","xls","xlsx","mat","csv","","txt","shp","xml","prj","dbf","sav","pkl","jld","jld2","gz","sas7bdat","rar","zip","7z","tar","tgz","bz2","xz","parquet", "json", "jsonl", "pickle"]
+        extensions = ["gpkg","dat","dta","rda","rds","rdata","ods","xls","xlsx","mat","csv","shp","xml","prj","dbf","sav","pkl","jld","jld2","gz","sas7bdat","rar","zip","7z","tar","tgz","bz2","xz","parquet","json","jsonl","pickle"]
 
         outfile = joinpath(fp,"data-files.md")
         manifest_file = joinpath(fp,"data-files-manifest.csv")
