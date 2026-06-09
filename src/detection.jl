@@ -231,15 +231,27 @@ data_files = ["data/survey.dta", "data/admin.csv"]
 matches = scan_data_files(data_files)
 ```
 """
-function scan_data_files(data_files::Vector{String}; 
+function scan_data_files(data_files::Vector{String};
                         strict::Bool=false,
-                        custom_terms::Vector{String}=String[])
+                        custom_terms::Vector{String}=String[],
+                        max_total_gb::Float64=50.0)
     all_matches = PIIMatch[]
-    
-    println("Scanning $(length(data_files)) data files...")
+    max_bytes = max_total_gb * 1024^3
+    scanned_bytes = 0.0
+    n_skipped = 0
+
+    println("Scanning $(length(data_files)) data files (limit: $(max_total_gb) GB)...")
     for (idx, filepath) in enumerate(data_files)
+        fsize = try filesize(filepath) catch; 0 end
+
+        if scanned_bytes + fsize > max_bytes
+            n_skipped += 1
+            continue
+        end
+        scanned_bytes += fsize
+
         print("  [$idx/$(length(data_files))] $filepath ... ")
-        
+
         matches = try
             scan_data_file(filepath; strict=strict, custom_terms=custom_terms)
         catch e
@@ -253,10 +265,14 @@ function scan_data_files(data_files::Vector{String};
         else
             println("⚠ $(length(matches)) variables flagged")
         end
-        
+
         append!(all_matches, matches)
     end
-    
+
+    if n_skipped > 0
+        @warn "data scan size limit ($(max_total_gb) GB) reached: $n_skipped file(s) not scanned"
+    end
+
     return all_matches
 end
 

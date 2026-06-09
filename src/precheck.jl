@@ -46,10 +46,11 @@ pkg_dir, manifest = prepare_package_for_precheck("large.zip")
 precheck_package(pkg_dir, pre_manifest=manifest)
 ```
 """
-function precheck_package(pkg_loc::String; 
+function precheck_package(pkg_loc::String;
     pre_manifest::Union{Nothing,DataFrame}=nothing,
     no_data_scan = ["__MACOSX","renv"],
     no_code_scan = ["__MACOSX"],
+    max_data_scan_gb::Float64=50.0,
     )
 
     pkg_root = joinpath(pkg_loc, "..")
@@ -124,7 +125,8 @@ function precheck_package(pkg_loc::String;
     if !isnothing(no_data_scan)
         @info "not scanning data files with $no_data_scan in path"
     end
-    data_matches = scan_data_files(filter(x -> !any(contains.(x, no_data_scan)), datafiles))
+    data_matches = scan_data_files(filter(x -> !any(contains.(x, no_data_scan)), datafiles),
+                                   max_total_gb=max_data_scan_gb)
     code_matches = scan_code_files(filter(x -> !any(contains.(x, no_code_scan)), codefiles))
     write_pii_report(data_matches, code_matches, out, splitat = dirname(pkg_loc))
 
