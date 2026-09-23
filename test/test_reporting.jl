@@ -180,3 +180,59 @@ end
     @test occursin("- Variable `first_name`", content)
     @test occursin("samples: John, Jane", content)
 end
+
+@testitem "redact_secrets - known secret formats" begin
+    using PackageScanner
+
+    # Built via concatenation, not written as a contiguous literal, so this
+    # synthetic fixture can never look like a real credential to a secret
+    # scanner reading the source file.
+    fake_openai_key = "sk-proj-" * "Ab3" ^ 10
+    fake_aws_key = "AKIA" * "IOSFODNN7EXAMPLE"
+    fake_gh_token = "ghp_" * "1234567890abcdef" ^ 3
+
+    @test PackageScanner.redact_secrets(fake_openai_key) == "[REDACTED-SECRET]"
+    @test PackageScanner.redact_secrets("os.environ[\"OPENAI_API_KEY\"] = \"$fake_openai_key\"") ==
+          "os.environ[\"OPENAI_API_KEY\"] = \"[REDACTED-SECRET]\""
+    @test PackageScanner.redact_secrets("aws_key = \"$fake_aws_key\"") == "aws_key = \"[REDACTED-SECRET]\""
+    @test PackageScanner.redact_secrets("token: $fake_gh_token") == "token: [REDACTED-SECRET]"
+    @test PackageScanner.redact_secrets("plain code with no secrets in it") == "plain code with no secrets in it"
+end
+
+@testitem "generate_detailed_appendix - redacts secrets in code context" begin
+    using PackageScanner
+
+    fake_openai_key = "sk-proj-" * "Ab3" ^ 10
+    code_matches = [
+        PackageScanner.PIIMatch(
+            "src/classify.py", "Line 49", nothing, ["key"],
+            ["\"$fake_openai_key\""]
+        ),
+    ]
+
+    appendix = PackageScanner.generate_detailed_appendix(PackageScanner.PIIMatch[], code_matches)
+
+    @test !occursin(fake_openai_key, appendix)
+    @test occursin("[REDACTED-SECRET]", appendix)
+end
+
+@testitem "write_pii_report_simple - redacts secrets in code context" begin
+    using PackageScanner
+    tmpdir = mktempdir()
+
+    fake_openai_key = "sk-proj-" * "Ab3" ^ 10
+    code_matches = [
+        PackageScanner.PIIMatch(
+            "src/classify.py", "Line 49", nothing, ["key"],
+            ["\"$fake_openai_key\""]
+        ),
+    ]
+
+    redirect_stdout(devnull) do
+        PackageScanner.write_pii_report_simple(PackageScanner.PIIMatch[], code_matches, tmpdir)
+    end
+
+    content = read(joinpath(tmpdir, "report-pii.md"), String)
+    @test !occursin(fake_openai_key, content)
+    @test occursin("[REDACTED-SECRET]", content)
+end

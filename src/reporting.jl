@@ -1,3 +1,30 @@
+const SECRET_PATTERNS = [
+    r"sk-proj-[A-Za-z0-9_-]{20,}",              # OpenAI project key
+    r"sk-[A-Za-z0-9]{20,}",                     # OpenAI legacy key
+    r"AKIA[0-9A-Z]{16}",                        # AWS access key ID
+    r"gh[oprsu]_[A-Za-z0-9]{36,}",                # GitHub PAT/OAuth/app/refresh token
+    r"xox[baprs]-[A-Za-z0-9-]{10,}",            # Slack token
+    r"AIza[0-9A-Za-z_-]{35}",                   # Google API key
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----", # PEM private key
+]
+
+"""
+    redact_secrets(s::AbstractString) -> String
+
+Replace substrings matching common API-key/credential patterns with a
+placeholder. Applied to any raw file content (code context, data samples)
+before it is embedded in a written report, so a live credential found in a
+scanned package never round-trips into our own generated (and git-tracked)
+output.
+"""
+function redact_secrets(s::AbstractString)
+    out = String(s)
+    for pat in SECRET_PATTERNS
+        out = replace(out, pat => "[REDACTED-SECRET]")
+    end
+    return out
+end
+
 """
     generate_summary_table(data_results::Vector{PIIMatch}, code_results::Vector{PIIMatch}; num_lines=20)
 
@@ -127,7 +154,7 @@ function generate_detailed_appendix(data_results::Vector{PIIMatch},
                 push!(lines, "  - Matched terms: $terms")
                 
                 if !isempty(match.sample_values)
-                    samples = join(match.sample_values[1:min(3, length(match.sample_values))], ", ")
+                    samples = join(redact_secrets.(match.sample_values[1:min(3, length(match.sample_values))]), ", ")
                     push!(lines, "  - Sample values: $samples")
                 end
             end
@@ -153,8 +180,8 @@ function generate_detailed_appendix(data_results::Vector{PIIMatch},
             
             for match in matches
                 terms = join(match.matched_terms, ", ")
-                context = match.sample_values[1]
-                
+                context = redact_secrets(match.sample_values[1])
+
                 push!(lines, "- $(match.variable_name): $terms")
                 push!(lines, "  ```")
                 push!(lines, "  $context")
@@ -287,7 +314,7 @@ function write_pii_report_simple(data_results::Vector{PIIMatch},
         
         terms = join(match.matched_terms, ", ")
         label_info = isnothing(match.variable_label) ? "" : " ($(match.variable_label))"
-        samples = isempty(match.sample_values) ? "" : " | samples: $(join(match.sample_values[1:min(3, length(match.sample_values))], ", "))"
+        samples = isempty(match.sample_values) ? "" : " | samples: $(join(redact_secrets.(match.sample_values[1:min(3, length(match.sample_values))]), ", "))"
         
         push!(piis[match.filepath], "Variable `$(match.variable_name)`$label_info - terms: $terms$samples")
     end
@@ -299,8 +326,8 @@ function write_pii_report_simple(data_results::Vector{PIIMatch},
         end
         
         terms = join(match.matched_terms, ", ")
-        context = match.sample_values[1][1:min(80, length(match.sample_values[1]))]
-        
+        context = redact_secrets(match.sample_values[1][1:min(80, length(match.sample_values[1]))])
+
         push!(piis[match.filepath], "$(match.variable_name): $terms → `$context`")
     end
     
