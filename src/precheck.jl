@@ -84,6 +84,11 @@ function precheck_package(pkg_loc::String;
     secret_findings = scan_secrets(filter(x -> !any(contains.(x, no_code_scan)), codefiles))
     write_secrets_report(secret_findings, out)
 
+    # Flag proprietary/hosted LLM API usage (reproducibility note, not a security issue)
+    @info "Scan code files for LLM API usage"
+    llm_findings = scan_llm_usage(filter(x -> !any(contains.(x, no_code_scan)), codefiles))
+    write_llm_usage_report(llm_findings, out)
+
     datafiles = classify_files(pkg_loc, "data", out, pre_manifest=pre_manifest)
     docsfiles = classify_files(pkg_loc, "docs", out, pre_manifest=pre_manifest)
 

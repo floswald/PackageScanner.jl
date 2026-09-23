@@ -435,6 +435,51 @@ function write_secrets_report(findings::Vector{SecretFinding},
     end
 end
 
+"""
+    write_llm_usage_report(findings::Vector{LLMUsageFinding}, output_dir::String; report_file="report-llm-reproducibility.md")
+
+Write the LLM-API-usage report: a per-provider list of findings (if any),
+followed by a note on why LLM outputs are not exactly reproducible even at
+temperature=0, grounded in Coqueret, Llull, Oswald, Pérignon, Scheuch &
+Vilhuber, "Randomness in large language models: What researchers need to
+know (and report)" (https://arxiv.org/abs/2607.24372).
+"""
+function write_llm_usage_report(findings::Vector{LLMUsageFinding},
+                                 output_dir::String;
+                                 report_file::String="report-llm-reproducibility.md")
+    open(joinpath(output_dir, report_file), "w") do io
+        println(io, "## LLM API Usage & Reproducibility\n")
+
+        if isempty(findings)
+            println(io, "✅ No LLM API usage detected.")
+        else
+            println(io, "⚠️ LLM API usage detected\n")
+
+            by_provider = Dict{String,Vector{LLMUsageFinding}}()
+            for f in findings
+                push!(get!(by_provider, f.provider, LLMUsageFinding[]), f)
+            end
+
+            for provider in sort(collect(keys(by_provider)))
+                println(io, "### $provider\n")
+                for f in sort(by_provider[provider], by = x -> (x.filepath, x.line_number))
+                    println(io, "- `$(f.filepath)`:$(f.line_number) — `$(f.context)`")
+                end
+                println(io)
+            end
+
+            println(io, "---\n")
+            println(io, "**A note on reproducibility.** LLM outputs are inherently non-deterministic, even when a temperature parameter is set to zero: doing so removes deliberate sampling, but proprietary APIs remain subject to silent model updates, floating-point rounding, and non-deterministic expert routing in mixture-of-experts architectures. Exact reproduction of results generated via a hosted LLM API is therefore generally not guaranteed, even by the original authors. Coqueret, Llull, Oswald, Pérignon, Scheuch & Vilhuber recommend: (1) preferring local, open-weight models where feasible, for full control over the inference environment; (2) documenting LLM implementation details per emerging reporting-guideline conventions; and (3) treating LLM outputs as draws from a distribution rather than as fixed, exactly-reproducible measurements.\n")
+            println(io, "See: <https://arxiv.org/abs/2607.24372>")
+        end
+    end
+
+    println("✓ LLM usage report written: $(joinpath(output_dir, report_file))")
+    if !isempty(findings)
+        println("  ⚠️ $(length(findings)) LLM API usage reference(s) found")
+    end
+end
+
 function full_example()
     tmpdir = mktempdir()
     

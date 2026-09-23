@@ -24,6 +24,7 @@ include("data-loading.jl")
 include("detection.jl")
 include("CodeQualityScanner.jl")
 include("secrets_scan.jl")
+include("llm_usage_scan.jl")
 include("reporting.jl")
 
 # Package Analysis modules
