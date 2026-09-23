@@ -78,6 +78,12 @@ function precheck_package(pkg_loc::String;
     # Classify all files
     @info "Classify each file as code/data/docs"
     codefiles = classify_files(pkg_loc, "code", out, pre_manifest=pre_manifest)
+
+    # Scan for exposed credentials before anything else touches these files
+    @info "Scan code files for exposed secrets/credentials"
+    secret_findings = scan_secrets(filter(x -> !any(contains.(x, no_code_scan)), codefiles))
+    write_secrets_report(secret_findings, out)
+
     datafiles = classify_files(pkg_loc, "data", out, pre_manifest=pre_manifest)
     docsfiles = classify_files(pkg_loc, "docs", out, pre_manifest=pre_manifest)
 
