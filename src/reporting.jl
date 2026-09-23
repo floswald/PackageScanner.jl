@@ -1,25 +1,15 @@
-const SECRET_PATTERNS = [
-    r"sk-proj-[A-Za-z0-9_-]{20,}",              # OpenAI project key
-    r"sk-[A-Za-z0-9]{20,}",                     # OpenAI legacy key
-    r"AKIA[0-9A-Z]{16}",                        # AWS access key ID
-    r"gh[oprsu]_[A-Za-z0-9]{36,}",                # GitHub PAT/OAuth/app/refresh token
-    r"xox[baprs]-[A-Za-z0-9-]{10,}",            # Slack token
-    r"AIza[0-9A-Za-z_-]{35}",                   # Google API key
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----", # PEM private key
-]
-
 """
     redact_secrets(s::AbstractString) -> String
 
-Replace substrings matching common API-key/credential patterns with a
-placeholder. Applied to any raw file content (code context, data samples)
-before it is embedded in a written report, so a live credential found in a
-scanned package never round-trips into our own generated (and git-tracked)
-output.
+Replace substrings matching common API-key/credential patterns (`SECRET_PATTERNS`,
+defined in `constants.jl`) with a placeholder. Applied to any raw file content
+(code context, data samples) before it is embedded in a written report, so a
+live credential found in a scanned package never round-trips into our own
+generated (and git-tracked) output.
 """
 function redact_secrets(s::AbstractString)
     out = String(s)
-    for pat in SECRET_PATTERNS
+    for (_, pat) in SECRET_PATTERNS
         out = replace(out, pat => "[REDACTED-SECRET]")
     end
     return out
@@ -414,6 +404,35 @@ function write_code_quality_report(findings::Vector{CodeQualityFinding},
     n_adv  = count(f -> f.risk_level == :advisory, findings)
     println("✓ Code quality report written: $(joinpath(output_dir, report_file))")
     println("  Critical: $n_crit  Advisory: $n_adv")
+end
+
+"""
+    write_secrets_report(findings::Vector{SecretFinding}, output_dir::String; report_file="report-secrets.md")
+
+Write the secret-scan report. `findings` carries only `filepath`, `line_number`,
+and `secret_type` — never the matched text itself — so there is no way for a
+live credential to end up in this report.
+"""
+function write_secrets_report(findings::Vector{SecretFinding},
+                               output_dir::String;
+                               report_file::String="report-secrets.md")
+    open(joinpath(output_dir, report_file), "w") do io
+        println(io, "## Secrets Scan\n")
+
+        if isempty(findings)
+            println(io, "✅ No credentials detected.")
+        else
+            println(io, "⚠️ ALERT: possible live credential(s) detected\n")
+            for f in sort(findings, by = x -> (x.filepath, x.line_number))
+                println(io, "- `$(f.filepath)`:$(f.line_number) — $(f.secret_type)")
+            end
+        end
+    end
+
+    println("✓ Secrets report written: $(joinpath(output_dir, report_file))")
+    if !isempty(findings)
+        println("  ⚠️ $(length(findings)) possible credential(s) found")
+    end
 end
 
 function full_example()
