@@ -373,3 +373,40 @@ end
     @test occursin("CRITICAL", content)
     @test occursin("merge_mm", content) || occursin("merge m:m", content)
 end
+
+@testitem "write_code_quality_report - splits to appendix when over threshold" begin
+    using PackageScanner
+    out = mktempdir()
+
+    findings = [
+        PackageScanner.CodeQualityFinding("merge_mm", :critical, "stata", "build$i.do", 1, "unsafe merge", "merge m:m id using x.dta")
+        for i in 1:50
+    ]
+
+    PackageScanner.write_code_quality_report(findings, out; max_inline=40)
+
+    main_content = read(joinpath(out, "report-code-quality.md"), String)
+    @test occursin("too many to list inline", main_content)
+    @test occursin("Appendix", main_content)
+    @test occursin("| Stata | 50 | 0 |", main_content)
+    @test !occursin("build1.do", main_content)
+
+    appendix_path = joinpath(out, "report-code-quality-appendix.md")
+    @test isfile(appendix_path)
+    appendix_content = read(appendix_path, String)
+    @test occursin("build1.do", appendix_content)
+    @test occursin("build50.do", appendix_content)
+end
+
+@testitem "write_code_quality_report - no appendix when under threshold" begin
+    using PackageScanner
+    out = mktempdir()
+
+    findings = [
+        PackageScanner.CodeQualityFinding("merge_mm", :critical, "stata", "build.do", 1, "unsafe merge", "merge m:m id using x.dta")
+    ]
+
+    PackageScanner.write_code_quality_report(findings, out; max_inline=40)
+
+    @test !isfile(joinpath(out, "report-code-quality-appendix.md"))
+end

@@ -352,51 +352,115 @@ function write_pii_report_simple(data_results::Vector{PIIMatch},
 end
 
 """
-    write_code_quality_report(findings::Vector{CodeQualityFinding}, output_dir::String;
-                               report_file::String="report-code-quality.md")
+    generate_code_quality_detail(findings::Vector{CodeQualityFinding}) -> String
 
-Write a `## Code Quality` section to `report_file` inside `output_dir`.
-Findings are grouped by language, then by risk level (`:critical` first).
+Generate the full, per-finding markdown listing of code quality findings,
+grouped by language, then by risk level (`:critical` first). This is the
+detailed body shared by the main report (when small) and the appendix
+(when the finding count is large).
+"""
+function generate_code_quality_detail(findings::Vector{CodeQualityFinding})
+    lines = String[]
+
+    by_lang = Dict{String,Vector{CodeQualityFinding}}()
+    for f in findings
+        push!(get!(by_lang, f.language, CodeQualityFinding[]), f)
+    end
+
+    for lang in sort(collect(keys(by_lang)))
+        lang_findings = by_lang[lang]
+        push!(lines, "### $(uppercasefirst(lang))\n")
+
+        # Critical first, then advisory
+        for level in (:critical, :advisory)
+            level_findings = filter(f -> f.risk_level == level, lang_findings)
+            isempty(level_findings) && continue
+            tag = level == :critical ? "[CRITICAL]" : "[ADVISORY]"
+            for f in level_findings
+                loc = if isnothing(f.line_number) || isempty(f.filepath)
+                    ""
+                else
+                    " ($(basename(f.filepath)), line $(f.line_number))"
+                end
+                push!(lines, "$tag $(f.message)$loc")
+                if !isempty(f.context)
+                    push!(lines, "  → $(f.context)")
+                end
+                push!(lines, "")
+            end
+        end
+    end
+
+    return join(lines, "\n")
+end
+
+"""
+    generate_code_quality_summary_table(findings::Vector{CodeQualityFinding}) -> String
+
+Generate a compact per-language summary table (one row per language) of
+critical/advisory finding counts. Unlike the full per-finding listing, this
+table stays small regardless of how many findings there are.
+"""
+function generate_code_quality_summary_table(findings::Vector{CodeQualityFinding})
+    by_lang = Dict{String,Vector{CodeQualityFinding}}()
+    for f in findings
+        push!(get!(by_lang, f.language, CodeQualityFinding[]), f)
+    end
+
+    lines = String[]
+    push!(lines, "| Language | Critical | Advisory |")
+    push!(lines, "|----------|----------|----------|")
+    for lang in sort(collect(keys(by_lang)))
+        lang_findings = by_lang[lang]
+        n_crit = count(f -> f.risk_level == :critical, lang_findings)
+        n_adv  = count(f -> f.risk_level == :advisory, lang_findings)
+        push!(lines, "| $(uppercasefirst(lang)) | $n_crit | $n_adv |")
+    end
+
+    return join(lines, "\n")
+end
+
+"""
+    write_code_quality_report(findings::Vector{CodeQualityFinding}, output_dir::String;
+                               report_file="report-code-quality.md",
+                               appendix_file="report-code-quality-appendix.md",
+                               max_inline::Int=40)
+
+Write the code-quality report. Mirrors `write_pii_report`'s main+appendix
+split: if there are more than `max_inline` findings, `report_file` gets only
+a per-language summary table plus a link to `appendix_file`, which carries
+the full per-finding listing. Below that threshold, the full listing is
+written inline and no appendix is created.
 """
 function write_code_quality_report(findings::Vector{CodeQualityFinding},
                                     output_dir::String;
-                                    report_file::String="report-code-quality.md")
+                                    report_file::String="report-code-quality.md",
+                                    appendix_file::String="report-code-quality-appendix.md",
+                                    max_inline::Int=40)
+    too_long = length(findings) > max_inline
+
     open(joinpath(output_dir, report_file), "w") do io
         println(io, "## Code Quality\n")
 
         if isempty(findings)
             println(io, "✅ No code quality issues detected.")
-            return
+        elseif too_long
+            n_crit = count(f -> f.risk_level == :critical, findings)
+            n_adv  = count(f -> f.risk_level == :advisory, findings)
+            println(io, "⚠️ $(length(findings)) code quality issue(s) found ($n_crit critical, $n_adv advisory) — too many to list inline.\n")
+            println(io, "### Summary by Language\n")
+            println(io, generate_code_quality_summary_table(findings))
+            println(io, "\n*See [Appendix]($appendix_file) for the full per-finding listing.*")
+        else
+            println(io, generate_code_quality_detail(findings))
         end
+    end
 
-        # Group by language
-        by_lang = Dict{String,Vector{CodeQualityFinding}}()
-        for f in findings
-            push!(get!(by_lang, f.language, CodeQualityFinding[]), f)
-        end
-
-        for lang in sort(collect(keys(by_lang)))
-            lang_findings = by_lang[lang]
-            println(io, "### $(uppercasefirst(lang))\n")
-
-            # Critical first, then advisory
-            for level in (:critical, :advisory)
-                level_findings = filter(f -> f.risk_level == level, lang_findings)
-                isempty(level_findings) && continue
-                tag = level == :critical ? "[CRITICAL]" : "[ADVISORY]"
-                for f in level_findings
-                    loc = if isnothing(f.line_number) || isempty(f.filepath)
-                        ""
-                    else
-                        " ($(basename(f.filepath)), line $(f.line_number))"
-                    end
-                    println(io, "$tag $(f.message)$loc")
-                    if !isempty(f.context)
-                        println(io, "  → $(f.context)")
-                    end
-                    println(io)
-                end
-            end
+    if too_long
+        open(joinpath(output_dir, appendix_file), "w") do io
+            println(io, "## Appendix: Detailed Code Quality Findings\n")
+            println(io, "*Generated on $(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))*\n")
+            println(io, generate_code_quality_detail(findings))
         end
     end
 
@@ -404,6 +468,9 @@ function write_code_quality_report(findings::Vector{CodeQualityFinding},
     n_adv  = count(f -> f.risk_level == :advisory, findings)
     println("✓ Code quality report written: $(joinpath(output_dir, report_file))")
     println("  Critical: $n_crit  Advisory: $n_adv")
+    if too_long
+        println("  Detailed appendix: $(joinpath(output_dir, appendix_file))")
+    end
 end
 
 """
