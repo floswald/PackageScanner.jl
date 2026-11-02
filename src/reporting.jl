@@ -430,7 +430,9 @@ Write the code-quality report. Mirrors `write_pii_report`'s main+appendix
 split: if there are more than `max_inline` findings, `report_file` gets only
 a per-language summary table plus a link to `appendix_file`, which carries
 the full per-finding listing. Below that threshold, the full listing is
-written inline and no appendix is created.
+written inline and `appendix_file` is written empty — it is always created
+(even if empty) so that a Quarto `{{< include >}}` of it never errors on a
+missing file.
 """
 function write_code_quality_report(findings::Vector{CodeQualityFinding},
                                     output_dir::String;
@@ -456,8 +458,8 @@ function write_code_quality_report(findings::Vector{CodeQualityFinding},
         end
     end
 
-    if too_long
-        open(joinpath(output_dir, appendix_file), "w") do io
+    open(joinpath(output_dir, appendix_file), "w") do io
+        if too_long
             println(io, "## Appendix: Detailed Code Quality Findings\n")
             println(io, "*Generated on $(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))*\n")
             println(io, generate_code_quality_detail(findings))

@@ -398,7 +398,7 @@ end
     @test occursin("build50.do", appendix_content)
 end
 
-@testitem "write_code_quality_report - no appendix when under threshold" begin
+@testitem "write_code_quality_report - appendix empty when under threshold" begin
     using PackageScanner
     out = mktempdir()
 
@@ -408,5 +408,8 @@ end
 
     PackageScanner.write_code_quality_report(findings, out; max_inline=40)
 
-    @test !isfile(joinpath(out, "report-code-quality-appendix.md"))
+    # always created (even if empty) so a Quarto {{< include >}} never errors on a missing file
+    appendix_path = joinpath(out, "report-code-quality-appendix.md")
+    @test isfile(appendix_path)
+    @test isempty(read(appendix_path, String))
 end
