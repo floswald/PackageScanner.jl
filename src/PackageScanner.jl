@@ -32,6 +32,7 @@ include("file_classification.jl")
 include("path_analysis.jl")
 include("file_metadata.jl")
 include("readme_parser.jl")
+include("data_dependency_audit.jl")
 include("precheck.jl")
 include("zip.jl")
 
