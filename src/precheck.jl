@@ -149,6 +149,10 @@ function precheck_package(pkg_loc::String;
     @info "Read the README file"
     read_README(pkg_loc, out)
 
+    # README structure audit: required sections + data citation coverage
+    @info "Audit README structure (required sections, data citation coverage)"
+    readme_structure_audit(pkg_loc, datafiles, out)
+
     @info "Precheck done. Reports written to $out"
 
 end
