@@ -39,7 +39,14 @@ jobs:
           echo "PYTHON=$(which python)" >> $GITHUB_ENV
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1'
+          # Pinned to 1.12 (matches CI.yml's stable matrix entry): Julia 1.13.4
+          # (what 'version: 1' currently resolves to) hits a Conda.jl bug on
+          # this runner -- Conda's own module-load-time `prefix(ROOTENV)`
+          # check throws "Path to conda environment is not valid" merely from
+          # `import Conda` inside PyCall's build.jl, before ENV["PYTHON"]
+          # (set above) is ever consulted. 1.12 and 'pre' (both in CI.yml's
+          # matrix) don't hit this; only latest-stable 1.13.4 does.
+          version: '1.12'
       - uses: julia-actions/cache@v2
       - name: Install dependencies
         shell: julia --color=yes --project=docs {0}
