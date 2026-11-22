@@ -39,15 +39,20 @@ jobs:
           echo "PYTHON=$(which python)" >> $GITHUB_ENV
       - uses: julia-actions/setup-julia@v2
         with:
-          # Pinned to 1.12 (matches CI.yml's stable matrix entry): Julia 1.13.4
-          # (what 'version: 1' currently resolves to) hits a Conda.jl bug on
-          # this runner -- Conda's own module-load-time `prefix(ROOTENV)`
-          # check throws "Path to conda environment is not valid" merely from
-          # `import Conda` inside PyCall's build.jl, before ENV["PYTHON"]
-          # (set above) is ever consulted. 1.12 and 'pre' (both in CI.yml's
-          # matrix) don't hit this; only latest-stable 1.13.4 does.
+          # Pinned to 1.12 to match CI.yml's known-good stable entry.
           version: '1.12'
       - uses: julia-actions/cache@v2
+      - name: Pre-create Conda.jl's ROOTENV so it never attempts a Miniconda download
+        # Conda.jl is a hard PyCall dependency and gets built/precompiled
+        # regardless of whether PyCall ends up using it -- and its module-load
+        # code unconditionally validates `isdir(ROOTENV)`. We never actually
+        # need Conda (PYTHON above points PyCall at this system's real
+        # python), but its own Miniconda-fetch-on-first-build is flaky on
+        # this runner ("Path to conda environment is not valid", observed on
+        # both Julia 1.13.4 and 1.12 -- non-deterministic, not version-tied).
+        # An empty placeholder directory satisfies the validation without
+        # ever touching the network.
+        run: mkdir -p ~/.julia/conda/3/x86_64
       - name: Install dependencies
         shell: julia --color=yes --project=docs {0}
         run: |

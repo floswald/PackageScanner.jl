@@ -56,5 +56,15 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
+      - name: Pre-create Conda.jl's ROOTENV so it never attempts a Miniconda download
+        # Conda.jl is a hard PyCall dependency and gets built/precompiled
+        # regardless of whether PyCall ends up using it -- and its module-load
+        # code unconditionally validates `isdir(ROOTENV)`. We never actually
+        # need Conda (PYTHON above points PyCall at this system's real
+        # python), but its own Miniconda-fetch-on-first-build is flaky on
+        # this runner ("Path to conda environment is not valid"). An empty
+        # placeholder directory satisfies the validation without ever
+        # touching the network.
+        run: mkdir -p ~/.julia/conda/3/x86_64
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
