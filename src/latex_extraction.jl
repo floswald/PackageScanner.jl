@@ -1,4 +1,4 @@
-# LaTeX Paper Text Extraction Module
+# LaTeX/PDF Paper Text Extraction Module
 #
 # Stage C input (JPE-Reproducibility/JPE.jl#29): produce the flattened plain
 # text of a paper from its LaTeX source, for an LLM claims-extraction prompt.
@@ -9,8 +9,9 @@
 # dependency: this is a lightweight, best-effort \input/\include flattener
 # with simple macro substitution, not a full TeX processor.
 #
-# PDF extraction (the no-tex-available fallback) is out of scope here --
-# tracked separately, see JPE-Reproducibility/JPE.jl#29 Stage C.
+# PDF extraction (the no-tex-available fallback, see extract_latex_text's
+# docstring) is `extract_pdf_text` below, built on `get_pdf_text`
+# (readme_parser.jl, PyMuPDF via PyCall).
 
 """
     find_tex_roots(dir::String)
@@ -200,7 +201,7 @@ once a human has disambiguated (see below).
 If `main_files` is omitted, `find_tex_roots` runs auto-discovery:
 - **0 candidates**: returns `text = ""`, `roots = []`, `ambiguous = false`.
   This is the "no tex available" signal -- callers should fall back to the PDF
-  (out of scope here).
+  (see `extract_pdf_text`).
 - **1 candidate**: proceeds normally, flattens it.
 - **>1 candidates**: this is genuinely ambiguous -- a paper legitimately
   shipping `main.tex` + `appendix.tex` looks identical, structurally, to two
@@ -243,4 +244,23 @@ function extract_latex_text(paper_dir::String; main_files::Union{Nothing,Vector{
     end
 
     return (text = join(parts, "\n\n"), roots = roots, unresolved = unresolved, ambiguous = false)
+end
+
+"""
+    extract_pdf_text(pdf_path::String)
+
+Stage C fallback when `extract_latex_text` finds no `.tex` root at all:
+extract text from the compiled PDF directly via `get_pdf_text`
+(readme_parser.jl, PyMuPDF via PyCall). Returns the same named tuple shape
+as `extract_latex_text` so callers can treat the two interchangeably:
+`roots = [pdf_path]`, `ambiguous = false` (a single PDF has no
+root-selection problem), `unresolved = ()` (a compiled PDF has no
+`\\input`/`\\include` chains left to resolve -- that structure is already
+gone, a real loss for precision but means there's nothing left to resolve
+either).
+"""
+function extract_pdf_text(pdf_path::String)
+    isfile(pdf_path) || error("PDF file not found: $pdf_path")
+    text = get_pdf_text(pdf_path)
+    return (text = text, roots = [pdf_path], unresolved = NTuple{3,String}[], ambiguous = false)
 end

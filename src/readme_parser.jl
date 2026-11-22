@@ -2,42 +2,26 @@
 # Functions for reading and analyzing README files
 
 """
-    getPDFText(src, out) -> Dict 
+    get_pdf_text(src::String) -> String
 
-Extract text from a PDF file.
+Extract text from a PDF file via PyMuPDF (`pymupdf`, imported as `pymupdf` --
+not the deprecated `fitz` alias), called through `PyCall`. Returns the
+concatenated per-page text, in reading order, joined by newlines.
 
-# Arguments
-- `src`: Input PDF file path from where text is to be extracted
-- `out`: Output TXT file path where the output will be written
-
-Returns a dictionary containing metadata of the document.
+PyMuPDF is used instead of PDFIO.jl because its text extraction is
+layout-aware: on two-column academic PDFs, PDFIO frequently interleaves the
+two columns mid-sentence, while PyMuPDF's `get_text("text")` follows the
+page's actual reading order.
 """
-function getPDFText(src, out)
-    # Handle that can be used for subsequent operations on the document
-    doc = pdDocOpen(src)
-    
-    # Metadata extracted from the PDF document
-    # This value is retained and returned as the return from the function
-    docinfo = pdDocGetInfo(doc) 
-    open(out, "w") do io
-    
-        # Returns number of pages in the document       
-        npage = pdDocGetPageCount(doc)
-
-        for i = 1:npage
-        
-            # Handle to the specific page given the number index
-            page = pdDocGetPage(doc, i)
-            
-            # Extract text from the page and write it to the output file
-            pdPageExtractText(io, page)
-
-        end
+function get_pdf_text(src::String)
+    isfile(src) || error("PDF file not found: $src")
+    pymupdf = pyimport("pymupdf")
+    doc = pymupdf.open(src)
+    try
+        return join((doc.load_page(i).get_text("text") for i in 0:(length(doc) - 1)), "\n")
+    finally
+        doc.close()
     end
-    # Close the document handle
-    # The doc handle should not be used after this call
-    pdDocClose(doc)
-    return docinfo
 end
 
 """
@@ -114,20 +98,17 @@ function read_README(pkg_loc, fp::String)
                         end
                     end
                 end
-            elseif contains(d, r".pdf"i) 
-                tmpfile = joinpath(fp, "temp.txt")
-                try
-                    z = getPDFText(d, tmpfile)
+            elseif contains(d, r".pdf"i)
+                text = try
+                    get_pdf_text(d)
                 catch e
                     println(io, "README.PDF text extraction failed with error $e")
                     return 1
                 end
-                open(tmpfile, "r") do jo 
-                    for (i, line) in enumerate(eachline(jo))
-                        for s in searches
-                            if occursin(Regex(s, "i"), line)
-                                println(io, @sprintf("Line %d : %s", i, strip(line)))
-                            end
+                for (i, line) in enumerate(split(text, "\n"))
+                    for s in searches
+                        if occursin(Regex(s, "i"), line)
+                            println(io, @sprintf("Line %d : %s", i, strip(line)))
                         end
                     end
                 end

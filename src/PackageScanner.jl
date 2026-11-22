@@ -8,11 +8,11 @@ using CSV
 using DataFrames
 using MAT
 using Pickle
+using PyCall
 using ZipFile
 
 # Additional dependencies from JPEtools
 using Glob
-using PDFIO
 using Printf
 using SHA
 using TestItems
