@@ -26,10 +26,17 @@ jobs:
           r-version: 'release'
       - name: Set LD_LIBRARY_PATH for R
         run: echo "LD_LIBRARY_PATH=$(R RHOME)/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-      - name: Install rio from GitHub  
+      - name: Install rio from GitHub
         run: Rscript -e 'install.packages(c("remotes", "haven")); remotes::install_github("gesistsa/rio")'
         env:
-          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}      
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install pymupdf and point PyCall at this system Python
+        run: |
+          pip install pymupdf
+          echo "PYTHON=$(which python)" >> $GITHUB_ENV
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'

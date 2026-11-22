@@ -44,6 +44,13 @@ jobs:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       - name: Install all rio format handlers
         run: Rscript -e 'rio::install_formats()'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install pymupdf and point PyCall at this system Python
+        run: |
+          pip install pymupdf
+          echo "PYTHON=$(which python)" >> $GITHUB_ENV
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
