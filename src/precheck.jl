@@ -92,6 +92,10 @@ function precheck_package(pkg_loc::String;
     datafiles = classify_files(pkg_loc, "data", out, pre_manifest=pre_manifest)
     docsfiles = classify_files(pkg_loc, "docs", out, pre_manifest=pre_manifest)
 
+    # Cross-reference data files against code files (language-agnostic, static string search)
+    @info "Cross-reference data files against code (data dependency audit)"
+    data_dependency_audit(datafiles, codefiles, out)
+
     # Run cloc to get line counts
     @info "Running cloc for code statistics"
     try
@@ -144,6 +148,10 @@ function precheck_package(pkg_loc::String;
     # Parse README
     @info "Read the README file"
     read_README(pkg_loc, out)
+
+    # README structure audit: required sections + data citation coverage
+    @info "Audit README structure (required sections, data citation coverage)"
+    readme_structure_audit(pkg_loc, datafiles, out)
 
     @info "Precheck done. Reports written to $out"
 
