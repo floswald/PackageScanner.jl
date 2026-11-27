@@ -6,6 +6,7 @@ using Dates
 using Infiltrator
 using CSV
 using DataFrames
+using JSON
 using MAT
 using Pickle
 using PyCall
@@ -35,6 +36,8 @@ include("readme_parser.jl")
 include("data_dependency_audit.jl")
 include("readme_structure.jl")
 include("latex_extraction.jl")
+include("claims_extraction.jl")
+include("crosscheck.jl")
 include("precheck.jl")
 include("zip.jl")
 
